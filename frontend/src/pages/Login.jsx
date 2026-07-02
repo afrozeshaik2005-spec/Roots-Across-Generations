@@ -39,7 +39,8 @@ export const Login = () => {
     setSubmitting(false);
 
     if (result.success) {
-      navigate(redirectTo || '/onboarding');
+      const hasMemberships = result.user?.memberships?.length > 0;
+      navigate(redirectTo || (hasMemberships ? '/dashboard' : '/onboarding'));
     } else {
       setServerError(result.error);
     }

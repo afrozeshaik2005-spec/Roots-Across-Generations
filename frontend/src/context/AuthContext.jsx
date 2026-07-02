@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
         const userResponse = await api.get('/auth/me');
         if (userResponse.data?.success) {
           setUser(userResponse.data.user);
-          return { success: true };
+          return { success: true, user: userResponse.data.user };
         }
       }
       return { success: false, error: 'Invalid response from server' };
