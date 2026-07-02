@@ -96,9 +96,14 @@ app.use(cookieParser());
 // Static file serving fallback
 app.use('/uploads', express.static(path.join(path.resolve(), 'uploads')));
 
-// Health check
+// Health check (root)
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+// Health check (API prefix — used by Render)
+app.get('/api/v1/health', (req, res) => {
+  res.status(200).json({ status: 'healthy' });
 });
 
 // Base Route
