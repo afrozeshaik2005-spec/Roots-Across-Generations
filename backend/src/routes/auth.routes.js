@@ -28,33 +28,11 @@ router.get('/google/callback', (req, res, next) => {
   })(req, res, next);
 }, async (req, res) => {
   try {
-    const profile = req.user;
-    const email = profile?.emails?.[0]?.value;
-    if (!email) {
+    // req.user is already the Prisma User object from passport.js strategy
+    // (passport sets req.user = the user returned by done(null, user))
+    const user = req.user;
+    if (!user || !user.email) {
       return res.redirect(`${process.env.CLIENT_URL}/login?error=no_email`);
-    }
-    // Find or create user
-    let user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { googleId: profile.id },
-          { email }
-        ]
-      }
-    });
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          email,
-          googleId: profile.id,
-          notificationPreferences: { create: {} }
-        }
-      });
-    } else if (!user.googleId) {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { googleId: profile.id }
-      });
     }
 
     // Create session
@@ -77,6 +55,44 @@ router.get('/google/callback', (req, res, next) => {
       sameSite: 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
+
+    // Fetch memberships
+    let memberships = [];
+    if (user.familyMemberId) {
+      const member = await prisma.familyMember.findUnique({
+        where: { id: user.familyMemberId },
+        select: {
+          id: true,
+          fullName: true,
+          profilePhoto: true,
+          memberships: {
+            select: {
+              familyId: true,
+              role: true,
+              isPrimary: true,
+              family: {
+                select: {
+                  id: true,
+                  name: true,
+                  surname: true,
+                  familyId: true
+                }
+              }
+            }
+          }
+        }
+      });
+      if (member) {
+        memberships = member.memberships.map(m => ({
+          familyId: m.family.id,
+          readableFamilyId: m.family.familyId,
+          familyName: m.family.name,
+          familySurname: m.family.surname,
+          role: m.role,
+          isPrimary: m.isPrimary
+        }));
+      }
+    }
 
     // Decode redirectTo from Google state
     let redirectTo = '';

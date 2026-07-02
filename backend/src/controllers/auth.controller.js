@@ -110,13 +110,52 @@ export const login = async (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
+    // Fetch memberships so frontend knows which family trees the user belongs to
+    let memberships = [];
+    if (user.familyMemberId) {
+      const member = await prisma.familyMember.findUnique({
+        where: { id: user.familyMemberId },
+        select: {
+          id: true,
+          fullName: true,
+          profilePhoto: true,
+          memberships: {
+            select: {
+              familyId: true,
+              role: true,
+              isPrimary: true,
+              family: {
+                select: {
+                  id: true,
+                  name: true,
+                  surname: true,
+                  familyId: true
+                }
+              }
+            }
+          }
+        }
+      });
+      if (member) {
+        memberships = member.memberships.map(m => ({
+          familyId: m.family.id,
+          readableFamilyId: m.family.familyId,
+          familyName: m.family.name,
+          familySurname: m.family.surname,
+          role: m.role,
+          isPrimary: m.isPrimary
+        }));
+      }
+    }
+
     res.json({
       success: true,
       accessToken,
       user: {
         id: user.id,
         email: user.email,
-        memberId: user.familyMemberId
+        memberId: user.familyMemberId,
+        memberships
       }
     });
   } catch (err) {
@@ -201,13 +240,52 @@ export const googleLogin = async (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
+    // Fetch memberships so frontend knows which family trees the user belongs to
+    let memberships = [];
+    if (user.familyMemberId) {
+      const member = await prisma.familyMember.findUnique({
+        where: { id: user.familyMemberId },
+        select: {
+          id: true,
+          fullName: true,
+          profilePhoto: true,
+          memberships: {
+            select: {
+              familyId: true,
+              role: true,
+              isPrimary: true,
+              family: {
+                select: {
+                  id: true,
+                  name: true,
+                  surname: true,
+                  familyId: true
+                }
+              }
+            }
+          }
+        }
+      });
+      if (member) {
+        memberships = member.memberships.map(m => ({
+          familyId: m.family.id,
+          readableFamilyId: m.family.familyId,
+          familyName: m.family.name,
+          familySurname: m.family.surname,
+          role: m.role,
+          isPrimary: m.isPrimary
+        }));
+      }
+    }
+
     res.json({
       success: true,
       accessToken,
       user: {
         id: user.id,
         email: user.email,
-        memberId: user.familyMemberId
+        memberId: user.familyMemberId,
+        memberships
       }
     });
   } catch (err) {
