@@ -128,7 +128,7 @@ app.use((req, res, next) => {
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Roots Across Generations Server running on port ${PORT}`);
 });
 export { app, server, io };
