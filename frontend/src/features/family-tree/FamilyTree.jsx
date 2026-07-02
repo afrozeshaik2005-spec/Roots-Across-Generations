@@ -1,0 +1,410 @@
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  ReactFlow, Background,
+  useNodesState, useEdgesState,
+  useReactFlow, ReactFlowProvider
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2, ArrowLeft, UserPlus } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { useSocket } from '../../context/SocketContext.jsx';
+import api from '../../services/api.js';
+import FamilyNode from './FamilyNode.jsx';
+import FamilyEdge from './FamilyEdge.jsx';
+import ProfileSidebar from './ProfileSidebar.jsx';
+import AddRelativeModal from './AddRelativeModal.jsx';
+import InviteModal from './InviteModal.jsx';
+import SearchBar from '../search/SearchBar.jsx';
+import NotificationBell from '../notifications/NotificationBell.jsx';
+import { computeLayout, buildEdges } from './treeLayout.js';
+import ZoomSlider from './ZoomSlider.jsx';
+
+export const FamilyTree = () => {
+  return (
+    <ReactFlowProvider>
+      <FamilyTreeInner />
+    </ReactFlowProvider>
+  );
+};
+
+const FamilyTreeInner = () => {
+  // useReactFlow() returns a NEW object every render (Zustand without selector).
+  // Store API functions in refs so they are STABLE across renders.
+  const reactFlow = useReactFlow();
+  const fitViewRef = useRef(reactFlow.fitView);
+  const zoomToRef = useRef(reactFlow.zoomTo);
+  const getViewportRef = useRef(reactFlow.getViewport);
+
+  // Keep refs in sync with latest React Flow API (runs AFTER render, before effects)
+  useEffect(() => {
+    fitViewRef.current = reactFlow.fitView;
+    zoomToRef.current = reactFlow.zoomTo;
+    getViewportRef.current = reactFlow.getViewport;
+  });
+
+  const { familyId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const socket = useSocket();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [selectedMemberId, setSelectedMemberId] = useState(null);
+  const [compareSourceMember, setCompareSourceMember] = useState(null);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const sourceId = searchParams.get('compareSourceId');
+    const sourceName = searchParams.get('compareSourceName');
+    if (sourceId && sourceName) {
+      setCompareSourceMember({ id: sourceId, fullName: sourceName });
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('compareSourceId');
+      newParams.delete('compareSourceName');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const [addingRelative, setAddingRelative] = useState(null);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+
+  const nodeTypes = useMemo(() => ({ familyNode: FamilyNode }), []);
+  const edgeTypes = useMemo(() => ({ familyEdge: FamilyEdge }), []);
+
+  // Fetch raw tree data (members + relationships) from backend
+  const { data: treeData, isLoading, refetch } = useQuery({
+    queryKey: ['familyTree', familyId],
+    queryFn: async () => {
+      const response = await api.get(`/families/${familyId}/tree`);
+      return response.data;
+    },
+    enabled: !!familyId
+  });
+
+  // Listen for real-time relationship updates via socket
+  useEffect(() => {
+    if (!socket || !familyId) return;
+
+    const handleRelationshipUpdated = (payload) => {
+      if (payload.familyId === familyId) {
+        refetch();
+      }
+    };
+
+    socket.on('relationship.updated', handleRelationshipUpdated);
+    return () => socket.off('relationship.updated', handleRelationshipUpdated);
+  }, [socket, familyId, refetch]);
+
+  // Listen for contact request events via socket
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleContactRequestCreated = () => {
+      queryClient.invalidateQueries({ queryKey: ['contactRequests', 'received'] });
+    };
+    const handleContactRequestApproved = () => {
+      queryClient.invalidateQueries({ queryKey: ['contactRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['contactRequestStatus'] });
+    };
+    const handleContactRequestRejected = () => {
+      queryClient.invalidateQueries({ queryKey: ['contactRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['contactRequestStatus'] });
+    };
+
+    socket.on('contact.request.created', handleContactRequestCreated);
+    socket.on('contact.request.approved', handleContactRequestApproved);
+    socket.on('contact.request.rejected', handleContactRequestRejected);
+    return () => {
+      socket.off('contact.request.created', handleContactRequestCreated);
+      socket.off('contact.request.approved', handleContactRequestApproved);
+      socket.off('contact.request.rejected', handleContactRequestRejected);
+    };
+  }, [socket]);
+
+  // Calculate roles from auth context
+  const activeMembership = user?.memberships?.find(m => m.familyId === familyId);
+  const isHistorian = activeMembership && ['FOUNDER', 'HISTORIAN'].includes(activeMembership.role);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
+  const [zoom, setZoom] = useState(1);
+
+  // Sync zoom state with React Flow viewport (READ-ONLY — never writes to viewport)
+  // Uses refs so this interval is created ONCE and never recreated
+  useEffect(() => {
+    const timer = setInterval(() => {
+      try {
+        const viewport = getViewportRef.current();
+        if (viewport && viewport.zoom !== undefined) {
+          setZoom(prev => {
+            const rounded = Math.round(viewport.zoom * 100) / 100;
+            return prev === rounded ? prev : rounded;
+          });
+        }
+      } catch {}
+    }, 300);
+    return () => clearInterval(timer);
+  }, []); // EMPTY deps — uses refs, interval created once
+
+  const handleZoomChange = useCallback((newZoom) => {
+    setZoom(newZoom);
+    zoomToRef.current(newZoom);
+  }, []); // EMPTY deps — uses refs
+
+  // Layout engine — runs ONLY when treeData changes (initial load + refetch with new data)
+  // NO fitView, NO setViewport, NO getViewport in deps → no re-run on render
+  const lastTreeDataRef = useRef(null);
+  useEffect(() => {
+    if (!treeData?.members || !treeData?.relationships) return;
+    // Skip if this is the exact same data reference (React Query structural sharing)
+    if (treeData === lastTreeDataRef.current) return;
+    lastTreeDataRef.current = treeData;
+
+    const { members, relationships } = treeData;
+
+    // Compute positions using the Reingold-Tilford layout engine
+    const { positions } = computeLayout(members, relationships);
+
+    // Build React Flow node descriptors
+    const rfNodes = members.map(m => ({
+      id:       m.id,
+      type:     'familyNode',
+      position: positions[m.id] || { x: 0, y: 0 },
+      data: {
+        id:               m.id,
+        fullName:         m.fullName,
+        nickname:         m.nickname,
+        profilePhoto:     m.profilePhoto,
+        dob:              m.dob,
+        deathDate:        m.deathDate,
+        isLiving:         m.isLiving,
+        email:            m.email,
+        role:             m.role,
+        generationNumber: m.generationNumber || 1
+      }
+    }));
+
+    // Build React Flow edge descriptors (pass members for name lookup in hover labels)
+    const rfEdges = buildEdges(relationships, positions, members);
+
+    setNodes(rfNodes);
+    setEdges(rfEdges);
+
+    // One-time initial fitView after first data load — never re-trigger
+    // Uses ref so it doesn't cause effect re-runs
+    if (!lastTreeDataRef.current._initialFitDone) {
+      lastTreeDataRef.current._initialFitDone = true;
+      // Use setTimeout to ensure React Flow has rendered the nodes before fitting
+      requestAnimationFrame(() => {
+        fitViewRef.current({ padding: 0.15, duration: 0 });
+      });
+    }
+  }, [treeData, setNodes, setEdges]); // NO fitView in deps
+
+  const onNodeClick = useCallback((event, node) => {
+    const targetId = node?.data?.id;
+    if (!targetId) return;
+
+    if (compareSourceMember) {
+      const source = compareSourceMember;
+      setCompareSourceMember(null);
+      navigate(
+        `/family/${familyId}/relationships?memberOneId=${source.id}&memberTwoId=${targetId}`
+      );
+    } else {
+      setSelectedMemberId(targetId);
+    }
+  }, [compareSourceMember, familyId, navigate]);
+
+  const handleResetView = useCallback(() => {
+    fitViewRef.current({ duration: 500, padding: 0.15 });
+  }, []); // EMPTY deps — uses ref
+
+  const handleCloseSidebar = useCallback(() => setSelectedMemberId(null), []);
+
+  const handleAddRelative = useCallback((relativeMetadata) => setAddingRelative(relativeMetadata), []);
+
+  const handleStartCompare = useCallback((member) => {
+    setCompareSourceMember({ id: member.id, fullName: member.fullName });
+    setSelectedMemberId(null);
+  }, []);
+
+  const handleAddSuccess = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  const handleEdgeMouseEnter = useCallback((edgeId) => {
+    setHoveredEdgeId(edgeId);
+  }, []);
+
+  const handleEdgeMouseLeave = useCallback(() => {
+    setHoveredEdgeId(null);
+  }, []);
+
+  // Annotate edges with hover state and reorder so hovered edge renders last (on top)
+  const annotatedEdges = useMemo(() => {
+    if (!edges.length) return edges;
+
+    const result = edges.map(e => ({
+      ...e,
+      data: {
+        ...e.data,
+        isHovered: hoveredEdgeId === e.id,
+        isDimmed: hoveredEdgeId !== null && hoveredEdgeId !== e.id,
+        onEdgeMouseEnter: handleEdgeMouseEnter,
+        onEdgeMouseLeave: handleEdgeMouseLeave
+      }
+    }));
+
+    // Reorder: move hovered edge to end so SVG paints it on top
+    if (hoveredEdgeId) {
+      const hoveredIdx = result.findIndex(e => e.id === hoveredEdgeId);
+      if (hoveredIdx > -1) {
+        const [hovered] = result.splice(hoveredIdx, 1);
+        result.push(hovered);
+      }
+    }
+
+    return result;
+  }, [edges, hoveredEdgeId, handleEdgeMouseEnter, handleEdgeMouseLeave]);
+
+  return (
+    <div className="h-screen w-screen flex flex-col bg-ancestral-50/50 font-sans relative overflow-hidden">
+      {/* Top Bar Navigation */}
+      <div className="h-14 border-b border-neutral-200/80 bg-white/70 backdrop-blur-md flex justify-between items-center px-6 relative z-30">
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="flex items-center gap-2 text-xs font-semibold text-neutral-500 hover:text-ancestral-800 transition duration-200"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Dashboard</span>
+        </button>
+        <div className="text-center">
+          <h2 className="text-sm font-bold text-ancestral-900 tracking-wide">Generational Tree</h2>
+        </div>
+        <div className="flex items-center gap-3">
+          <SearchBar familyId={familyId} />
+          <NotificationBell familyId={familyId} />
+          <button
+            onClick={() => setInviteModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gold-600 hover:bg-gold-550 text-white rounded-xl text-xs font-semibold shadow hover:shadow-md transition duration-200"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Invite Relatives</span>
+          </button>
+          <button
+            onClick={() => navigate(`/family/${familyId}/contact-requests`)}
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-neutral-200 hover:bg-neutral-50 text-neutral-600 rounded-xl text-xs font-semibold shadow-sm transition duration-200"
+          >
+            <span>Contact Requests</span>
+          </button>
+          {isHistorian && (
+            <button
+              onClick={() => navigate(`/family/${familyId}/admin`)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-semibold shadow transition duration-200"
+            >
+              <span>Historian Admin</span>
+            </button>
+          )}
+          <button
+            onClick={() => navigate(`/family/${familyId}/relationships`)}
+            className="flex items-center gap-1.5 px-3 py-1.5 forest-gradient text-white rounded-xl text-xs font-semibold shadow hover:shadow-md transition duration-200"
+          >
+            <span>Relationship Explorer</span>
+          </button>
+          <button
+            onClick={() => navigate(`/family/${familyId}/messages`)}
+            className="flex items-center gap-1.5 px-3 py-1.5 forest-gradient text-white rounded-xl text-xs font-semibold shadow hover:shadow-md transition duration-200"
+          >
+            <span>Family Chat</span>
+          </button>
+          <button
+            onClick={() => navigate(`/family/${familyId}/memories`)}
+            className="flex items-center gap-1.5 px-3 py-1.5 forest-gradient text-white rounded-xl text-xs font-semibold shadow hover:shadow-md transition duration-200"
+          >
+            <span>Memories Vault</span>
+          </button>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <Loader2 className="w-10 h-10 animate-spin text-ancestral-500" />
+          <p className="mt-4 text-xs text-neutral-500">Constructing interactive branches...</p>
+        </div>
+      ) : (
+        <div className="flex-1 relative z-10">
+          <ReactFlow
+            nodes={nodes}
+            edges={annotatedEdges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            onNodeClick={onNodeClick}
+            minZoom={0.1}
+            maxZoom={2.5}
+            nodesDraggable={true}
+            nodesConnectable={false}
+            onlyRenderVisibleElements={true}
+          >
+            <Background color="#cca05a" gap={24} size={1} className="opacity-15" />
+          </ReactFlow>
+          <ZoomSlider zoom={zoom} onZoomChange={handleZoomChange} onResetView={handleResetView} />
+        </div>
+      )}
+
+      {/* Slide-out profile info */}
+      <AnimatePresence>
+        {selectedMemberId && (
+          <ProfileSidebar
+            memberId={selectedMemberId}
+            familyId={familyId}
+            currentUserMemberId={user?.memberId}
+            isHistorian={isHistorian}
+            onClose={handleCloseSidebar}
+            onAddRelative={handleAddRelative}
+            onStartCompare={handleStartCompare}
+            onRelationshipDeleted={handleAddSuccess}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Comparison floating instruction banner */}
+      {compareSourceMember && (
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-neutral-900 border border-neutral-800 text-white px-6 py-3.5 rounded-2xl shadow-xl flex items-center gap-4 z-40 text-xs">
+          <span>Comparing relationship with <strong>{compareSourceMember.fullName}</strong>. Select another member from the tree...</span>
+          <button
+            onClick={() => setCompareSourceMember(null)}
+            className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white rounded-lg transition"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* Add Relative Modal */}
+      {addingRelative && (
+        <AddRelativeModal
+          familyId={familyId}
+          relative={addingRelative}
+          onClose={() => setAddingRelative(null)}
+          onSuccess={handleAddSuccess}
+        />
+      )}
+
+      {/* Invite Modal */}
+      {inviteModalOpen && (
+        <InviteModal
+          familyId={familyId}
+          onClose={() => setInviteModalOpen(false)}
+        />
+      )}
+    </div>
+  );
+};
+
+export default FamilyTree;

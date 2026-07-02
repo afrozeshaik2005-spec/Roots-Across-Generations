@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-ancestral-50 text-ancestral-900 font-sans antialiased selection:bg-gold-200 selection:text-ancestral-900;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-semibold tracking-tight;
+  }
+}
+
+/* Glassmorphism panel styling */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px 0 rgba(22, 40, 29, 0.04);
+}
+
+.glass-panel-dark {
+  background: rgba(22, 40, 29, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+}
+
+.gold-gradient-text {
+  background: linear-gradient(to right, #b0813e, #cca05a, #b0813e);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.forest-gradient {
+  background: linear-gradient(135deg, #2c4c38 0%, #16281d 100%);
+}
+
+.forest-gradient-gold {
+  background: linear-gradient(135deg, #2c4c38 0%, #0d1811 100%);
+  border-bottom: 2px solid #cca05a;
+}

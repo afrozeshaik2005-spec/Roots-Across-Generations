@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+*.log.*
+
+# AI reports
+deployment-readiness-report.html
+Technical-Report.html
+family-tree-validation-report.json
+family-tree-validation-report.md
+AUDIT_JOIN_REQUEST_SPRINT1_PART1.md
+TODO.md
+list_files.py
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

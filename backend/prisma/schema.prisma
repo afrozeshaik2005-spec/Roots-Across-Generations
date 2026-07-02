@@ -1,0 +1,393 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum RelationshipType {
+  FATHER
+  MOTHER
+  GRANDFATHER
+  GRANDMOTHER
+  BROTHER
+  SISTER
+  UNCLE
+  AUNT
+  COUSIN
+  NEPHEW
+  NIECE
+  HUSBAND
+  WIFE
+  STEP_MOTHER
+  STEP_FATHER
+  ADOPTED_CHILD
+  GUARDIAN
+  SON
+  DAUGHTER
+  STEP_SON
+  STEP_DAUGHTER
+}
+
+enum MemoryType {
+  PHOTO
+  VIDEO
+  DOCUMENT
+  STORY
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ContactRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ContactRequestField {
+  PHONE
+  EMAIL
+  ADDRESS
+  ALL
+}
+
+enum NotificationType {
+  JOIN_REQUEST
+  JOIN_ACCEPTED
+  JOIN_REJECTED
+  MEMORY_TAGGED
+  PROFILE_UPDATED
+  BIRTHDAY_REMINDER
+  ANNIVERSARY_REMINDER
+  NEW_MEMBER
+  MESSAGE_RECEIVED
+}
+
+enum FamilyRole {
+  FOUNDER
+  HISTORIAN
+  MEMBER
+}
+
+enum TimelineEventType {
+  BORN
+  SCHOOL
+  COLLEGE
+  MARRIAGE
+  CHILDREN
+  CAREER
+  RETIREMENT
+  DEATH
+  CUSTOM
+}
+
+model User {
+  id                      String                   @id @default(uuid())
+  email                   String                   @unique
+  passwordHash            String?
+  googleId                String?                  @unique
+  theme                   String                   @default("light")
+  language                String                   @default("en")
+  dateFormat              String                   @default("DD/MM/YYYY")
+  isDeleted               Boolean                  @default(false)
+  deletedAt               DateTime?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  sessions                Session[]
+  notifications           Notification[]
+  notificationPreferences NotificationPreferences?
+
+  // Link to a specific member profile (which can belong to multiple families)
+  familyMember   FamilyMember? @relation(fields: [familyMemberId], references: [id])
+  familyMemberId String?       @unique
+}
+
+model NotificationPreferences {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinRequest         Boolean  @default(true)
+  memoryTagged        Boolean  @default(true)
+  profileUpdated      Boolean  @default(true)
+  birthdayReminder    Boolean  @default(true)
+  anniversaryReminder Boolean  @default(true)
+  newMember           Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Family {
+  id                 String             @id @default(uuid())
+  name               String
+  description        String?
+  originVillageCity  String?
+  surname            String?
+  coverPhoto         String?
+  familyId           String             @unique // Format: "SURNAME-12345"
+  shareableLink      String             @unique
+  qrCodeUrl          String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  memberships        FamilyMembership[]
+  relationships      Relationship[]
+  joinRequests       JoinRequest[]
+  memories           Memory[]
+  messages           Message[]
+  conversations      Conversation[]
+  auditLogs          AuditLog[]
+  contactRequests    ContactRequest[]
+}
+
+model FamilyMember {
+  id                 String             @id @default(uuid())
+  profilePhoto       String?
+  fullName           String
+  surname            String?            // Family member surname for indexing/searching
+  nickname           String?
+  dob                DateTime?
+  birthPlace         String?
+  birthVillageCity   String?
+  bloodGroup         String?
+  occupation         String?
+  education          String?
+  phone              String?
+  email              String?
+  generationNumber   Int?               // Support for generation-based searches
+  gender             String?            // 'M', 'F', or 'Other' — nullable for backwards compatibility
+  isLiving           Boolean            @default(true)
+  deathDate          DateTime?
+  causeOfDeath       String?
+  bio                String?
+  isDeleted          Boolean            @default(false)
+  deletedAt          DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  // Inverse relation to User
+  user               User?
+  
+  // A member can join multiple families
+  memberships        FamilyMembership[]
+  
+  // Tree relationships (direct self-referential graph mappings)
+  relationshipsAsSubject Relationship[] @relation("SubjectMember")
+  relationshipsAsObject  Relationship[] @relation("ObjectMember")
+  
+  // Memories
+  createdMemories    Memory[]           @relation("MemoryCreator")
+  memoryTags         MemoryTag[]
+  
+  // Timeline, Privacy & Messaging
+  timelineEvents     TimelineEvent[]
+  privacySettings    PrivacySettings?
+  sentMessages       Message[]          @relation("SenderMember")
+  receivedMessages   Message[]          @relation("ReceiverMember")
+  conversationsAsOne Conversation[]     @relation("MemberOneConversations")
+  conversationsAsTwo Conversation[]     @relation("MemberTwoConversations")
+
+  // Audit Logs
+  auditActions       AuditLog[]
+
+  // Contact Requests (sent or received)
+  sentContactRequests     ContactRequest[] @relation("ContactRequester")
+  receivedContactRequests ContactRequest[] @relation("ContactOwner")
+
+  // Indexes for query performance matching Module 7 Search
+  @@index([fullName])
+  @@index([surname])
+  @@index([birthVillageCity])
+  @@index([occupation])
+  @@index([bloodGroup])
+  @@index([generationNumber])
+}
+
+model FamilyMembership {
+  id        String     @id @default(uuid())
+  familyId  String
+  family    Family     @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  memberId  String
+  member    FamilyMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  role      FamilyRole @default(MEMBER)
+  isPrimary Boolean    @default(false)
+  joinedAt  DateTime   @default(now())
+
+  @@unique([familyId, memberId])
+}
+
+model Relationship {
+  id              String           @id @default(uuid())
+  familyId        String
+  family          Family           @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  personId        String
+  person          FamilyMember     @relation("SubjectMember", fields: [personId], references: [id], onDelete: Cascade)
+  relatedPersonId String
+  relatedPerson   FamilyMember     @relation("ObjectMember", fields: [relatedPersonId], references: [id], onDelete: Cascade)
+  type            RelationshipType
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@unique([familyId, personId, relatedPersonId, type])
+}
+
+model JoinRequest {
+  id                 String            @id @default(uuid())
+  familyId           String
+  family             Family            @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  requesterUserId    String?
+  fullName           String
+  dob                DateTime
+  email              String
+  phone              String
+  gender             String?
+  relatedToMemberId  String
+  relationshipType   RelationshipType
+  proofUrl           String?
+  status             JoinRequestStatus @default(PENDING)
+  createdMemberId    String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+}
+
+model Memory {
+  id              String       @id @default(uuid())
+  familyId        String
+  family          Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  creatorMemberId String
+  creator         FamilyMember @relation("MemoryCreator", fields: [creatorMemberId], references: [id], onDelete: Cascade)
+  type            MemoryType
+  title           String
+  description     String?
+  fileUrl         String?
+  location        String?
+  memoryDate      DateTime?
+  isDeleted       Boolean      @default(false)
+  deletedAt       DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  tags            MemoryTag[]
+}
+
+model MemoryTag {
+  id        String       @id @default(uuid())
+  memoryId  String
+  memory    Memory       @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  memberId  String
+  member    FamilyMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+
+  @@unique([memoryId, memberId])
+}
+
+model TimelineEvent {
+  id          String            @id @default(uuid())
+  memberId    String
+  member      FamilyMember      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  type        TimelineEventType
+  title       String
+  description String?
+  eventDate   DateTime
+  location    String?
+  isCustom    Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  body        String
+  isRead      Boolean          @default(false)
+  referenceId String?
+  createdAt   DateTime         @default(now())
+}
+
+model Conversation {
+  id           String       @id @default(uuid())
+  familyId     String
+  family       Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  memberOneId  String
+  memberOne    FamilyMember @relation("MemberOneConversations", fields: [memberOneId], references: [id], onDelete: Cascade)
+  memberTwoId  String
+  memberTwo    FamilyMember @relation("MemberTwoConversations", fields: [memberTwoId], references: [id], onDelete: Cascade)
+  messages     Message[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([familyId, memberOneId, memberTwoId])
+}
+
+model Message {
+  id                  String       @id @default(uuid())
+  familyId            String
+  family              Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  conversationId      String
+  conversation        Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderMemberId      String
+  sender              FamilyMember @relation("SenderMember", fields: [senderMemberId], references: [id], onDelete: Cascade)
+  receiverMemberId    String
+  receiver            FamilyMember @relation("ReceiverMember", fields: [receiverMemberId], references: [id], onDelete: Cascade)
+  content             String
+  isRead              Boolean      @default(false)
+  isDeletedBySender   Boolean      @default(false)
+  isDeletedByReceiver Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+}
+
+model PrivacySettings {
+  id             String       @id @default(uuid())
+  memberId       String       @unique
+  member         FamilyMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  hidePhone      Boolean      @default(false)
+  hideEmail      Boolean      @default(false)
+  hideDob        Boolean      @default(false)
+  hideOccupation Boolean      @default(false)
+  hidePhotos     Boolean      @default(false)
+}
+
+model AuditLog {
+  id             String       @id @default(uuid())
+  familyId       String
+  family         Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  actorMemberId  String
+  actor          FamilyMember @relation(fields: [actorMemberId], references: [id], onDelete: Cascade)
+  action         String
+  details        String?      // Stored JSON configuration
+  createdAt      DateTime     @default(now())
+}
+
+model ContactRequest {
+  id              String                @id @default(uuid())
+  requesterId     String
+  requester       FamilyMember          @relation("ContactRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  ownerId         String
+  owner           FamilyMember          @relation("ContactOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  familyId        String
+  family          Family                @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  fields          ContactRequestField[]
+  status          ContactRequestStatus  @default(PENDING)
+  sharedPhone     String?
+  sharedEmail     String?
+  sharedAddress   String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@unique([requesterId, ownerId, familyId, status])
+}
