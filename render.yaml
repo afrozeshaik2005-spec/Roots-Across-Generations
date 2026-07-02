@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: roots-across-generations-api
+    region: oregon
+    rootDir: backend
+    runtime: node
+    plan: free
+    buildCommand: npm install && npx prisma generate
+    startCommand: node src/index.js
+    healthCheckPath: /health
+    envVars:
+      # ── Required ──
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false  # Set manually in Render dashboard
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      # ── URL Configuration (set after deploy — update with actual Render URL) ──
+      - key: SERVER_URL
+        sync: false  # Set to https://<your-render-url>
+      - key: CLIENT_URL
+        sync: false  # Set to https://<your-vercel-url>
+      - key: FRONTEND_URL
+        sync: false  # Set to https://<your-vercel-url>
+      - key: BACKEND_URL
+        sync: false  # Set to https://<your-render-url>
+      - key: CORS_ORIGINS
+        sync: false  # Set to https://<your-vercel-url>
+      # ── Google OAuth ──
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      # ── Firebase (optional — app works without it) ──
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: FIREBASE_STORAGE_BUCKET
+        sync: false
+
+  # Optional: PostgreSQL database on Render
+  - type: pgsql
+    name: roots-across-generations-db
+    region: oregon
+    plan: free
+    database: roots_db
+    # After creation, copy the Internal Database URL into DATABASE_URL above
