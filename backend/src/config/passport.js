@@ -12,12 +12,16 @@ passport.use(new GoogleStrategy({
   callbackURL,
 }, async (accessToken, refreshToken, profile, done) => {
   try {
+    const email = profile?.emails?.[0]?.value;
+    if (!email) {
+      return done(new Error('Google account has no email'), null);
+    }
     let user = await prisma.user.findFirst({
-      where: { OR: [{ googleId: profile.id }, { email: profile.emails[0].value }] }
+      where: { OR: [{ googleId: profile.id }, { email }] }
     });
     if (!user) {
       user = await prisma.user.create({
-        data: { email: profile.emails[0].value, googleId: profile.id }
+        data: { email, googleId: profile.id }
       });
     } else if (!user.googleId) {
       user = await prisma.user.update({
