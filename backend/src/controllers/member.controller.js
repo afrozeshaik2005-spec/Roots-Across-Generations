@@ -532,7 +532,7 @@ export const getMemberProfile = async (req, res, next) => {
       title: e.title,
       description: e.description,
       eventDate: e.eventDate,
-      iconType: e.iconType,
+      iconType: e.type,
       isCustom: true
     }));
 
@@ -773,7 +773,7 @@ export const updatePrivacySettings = async (req, res, next) => {
 export const addTimelineEvent = async (req, res, next) => {
   try {
     const { memberId } = req.params;
-    const { title, description, eventDate, iconType } = req.body;
+    const { title, description, eventDate, type: eventType } = req.body;
 
     if (!title || !eventDate) {
       return res.status(400).json({
@@ -820,7 +820,7 @@ export const addTimelineEvent = async (req, res, next) => {
         title,
         description: description || null,
         eventDate: new Date(eventDate),
-        iconType: iconType || 'OTHER',
+        type: eventType || 'CUSTOM',
         isCustom: true
       }
     });

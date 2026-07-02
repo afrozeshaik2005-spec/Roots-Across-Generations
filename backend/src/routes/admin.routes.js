@@ -21,7 +21,7 @@ router.use(authenticateJWT);
 
 // Dashboard stats & activity logs
 router.get('/dashboard', requireRole(['HISTORIAN']), getAdminDashboard);
-router.get('/health', requireRole(['HISTORIAN']), getHealthCheck);
+router.get('/health', getHealthCheck);
 router.get('/audit-log', requireRole(['HISTORIAN']), getAdminAuditLog);
 
 // Members records management

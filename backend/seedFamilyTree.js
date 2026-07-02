@@ -91,7 +91,7 @@ async function main() {
       description: 'Four-generation Reddy family from Andhra Pradesh, India. Includes multiple branches, remarriages, adoptions, and cross-branch cousin relationships.',
       originVillageCity: 'Guntur, Andhra Pradesh',
       familyId: FAMILY_ID,
-      shareableLink: `http://localhost:5173/join/${FAMILY_ID}`
+      shareableLink: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/join/${FAMILY_ID}`
     }
   });
   console.log(`🏠 Family: ${family.name} (${family.id})\n`);

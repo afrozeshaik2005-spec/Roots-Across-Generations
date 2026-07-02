@@ -16,7 +16,10 @@ export const authenticateJWT = async (req, res, next) => {
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        familyMemberId: true,
         familyMember: {
           select: {
             id: true,
@@ -44,7 +47,7 @@ export const authenticateJWT = async (req, res, next) => {
     req.user = {
       id: user.id,
       email: user.email,
-      memberId: user.familyMember?.id || null,
+      memberId: user.familyMember?.id || user.familyMemberId || null,
       fullName: user.familyMember?.fullName || null,
       memberships: user.familyMember?.memberships || []
     };
@@ -78,7 +81,10 @@ export const authenticateJWTOptional = async (req, res, next) => {
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        familyMemberId: true,
         familyMember: {
           select: {
             id: true,
@@ -100,7 +106,7 @@ export const authenticateJWTOptional = async (req, res, next) => {
       req.user = {
         id: user.id,
         email: user.email,
-        memberId: user.familyMember?.id || null,
+        memberId: user.familyMember?.id || user.familyMemberId || null,
         fullName: user.familyMember?.fullName || null,
         memberships: user.familyMember?.memberships || []
       };

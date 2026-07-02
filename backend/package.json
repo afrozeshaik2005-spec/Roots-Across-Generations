@@ -13,7 +13,10 @@
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "node seedFamilyTree.js",
+    "deploy:check": "echo 'Run: bash ../deploy-check.sh'"
   },
   "dependencies": {
     "@prisma/client": "^5.12.1",

@@ -122,7 +122,7 @@ app.use((req, res, next) => {
 // Global Error Handler
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
   console.log(`Roots Across Generations Server running on port ${PORT}`);
 });
