@@ -30,6 +30,7 @@ import AuditLogPage from './features/admin/AuditLogPage.jsx';
 import FamilySettingsPage from './features/admin/FamilySettingsPage.jsx';
 import MessagesPage from './features/messaging/MessagesPage.jsx';
 import SettingsPage from './features/settings/SettingsPage.jsx';
+import Profile from './pages/Profile.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 const queryClient = new QueryClient({
@@ -100,6 +101,7 @@ function App() {
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/family/:familyId/messages" element={<MessagesPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/profile" element={<Profile />} />
                 
                 {/* Admin / Historian routes */}
                 <Route path="/family/:familyId/admin" element={<HistorianDashboard />} />
