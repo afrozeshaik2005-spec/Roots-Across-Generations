@@ -162,11 +162,6 @@ export const Login = () => {
               <p className="text-neutral-500 text-base sm:text-lg leading-relaxed max-w-xl mx-auto lg:mx-0">
                 Build, preserve, and explore your family's history through a collaborative digital family tree designed for generations to come.
               </p>
-              <div className="flex flex-wrap gap-4 justify-center lg:justify-start pt-2">
-                <span className="forest-gradient text-ancestral-50 py-3.5 px-8 rounded-2xl font-medium tracking-wide inline-flex items-center gap-2 cursor-default">
-                  Get Started <ArrowRight className="w-4 h-4" />
-                </span>
-              </div>
             </motion.section>
 
             {/* ── SECTION 2: What is this platform? ── */}
