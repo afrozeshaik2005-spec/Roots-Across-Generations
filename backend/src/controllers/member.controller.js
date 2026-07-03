@@ -630,15 +630,19 @@ export const getMemberProfile = async (req, res, next) => {
     }
 
     if (viewerRole === 'LINK_VIEWER') {
-      // Link viewers only see name, lifespan, relationship, and basic info
+      // Link viewers see basic info with full date fields for frontend compatibility
+      // but sensitive fields (phone, email, occupation, etc.) are excluded
       const linkProfile = {
         id: member.id,
         fullName: member.fullName,
         nickname: member.nickname,
         isLiving: member.isLiving,
+        dob: member.dob,
+        deathDate: member.deathDate,
         birthYear: member.dob ? new Date(member.dob).getFullYear() : null,
         deathYear: (!member.isLiving && member.deathDate) ? new Date(member.deathDate).getFullYear() : null,
         profilePhoto: privacy?.hidePhotos ? null : member.profilePhoto,
+        generationNumber: member.generationNumber,
         spouses,
         parents,
         children,

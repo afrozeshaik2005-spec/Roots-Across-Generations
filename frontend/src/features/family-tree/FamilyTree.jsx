@@ -287,10 +287,19 @@ const FamilyTreeInner = () => {
     // Find relationship type from relationships array
     let relationship = null;
     if (treeData.relationships) {
-      const rel = treeData.relationships.find(
+      // Find ALL relationships involving this member
+      const rels = treeData.relationships.filter(
         r => r.personId === selectedMemberId || r.relatedPersonId === selectedMemberId
       );
-      if (rel) {
+      if (rels.length > 0) {
+        // Pick the most descriptive relationship (prefer direct family over step/adopted)
+        const priority = ['FATHER', 'MOTHER', 'SON', 'DAUGHTER', 'HUSBAND', 'WIFE', 'BROTHER', 'SISTER'];
+        const sorted = rels.sort((a, b) => {
+          const ai = priority.indexOf(a.type);
+          const bi = priority.indexOf(b.type);
+          return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+        });
+        const rel = sorted[0];
         // Determine the label based on direction
         if (rel.personId === selectedMemberId) {
           relationship = rel.type; // This person IS the type (e.g., FATHER of someone)
@@ -451,21 +460,28 @@ const FamilyTreeInner = () => {
 
       {/* Floating RelativeCard for link viewers */}
       {isLinkViewer && selectedMemberData && (
-        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-40">
-          <div className="relative">
-            <RelativeCard
-              member={selectedMemberData.member}
-              relationship={selectedMemberData.relationship}
-            />
-            <button
-              onClick={handleCloseSidebar}
-              className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-600 flex items-center justify-center text-xs font-bold shadow transition"
-              title="Close"
-            >
-              &times;
-            </button>
+        <>
+          {/* Backdrop to close on click outside */}
+          <div
+            className="fixed inset-0 z-35 bg-black/10"
+            onClick={handleCloseSidebar}
+          />
+          <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-40">
+            <div className="relative">
+              <RelativeCard
+                member={selectedMemberData.member}
+                relationship={selectedMemberData.relationship}
+              />
+              <button
+                onClick={handleCloseSidebar}
+                className="absolute -top-2.5 -right-2.5 w-7 h-7 rounded-full bg-neutral-800 hover:bg-neutral-700 text-white flex items-center justify-center text-sm font-bold shadow-lg transition"
+                title="Close"
+              >
+                &times;
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Comparison floating instruction banner */}
