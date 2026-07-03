@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, ArrowLeft, Mail, Phone, Calendar, Briefcase, GraduationCap, Heart, Users, Edit, ShieldAlert, BadgeInfo } from 'lucide-react';
+import { Loader2, ArrowLeft, Mail, Phone, Calendar, Briefcase, GraduationCap, Heart, Users, Edit, ShieldAlert, BadgeInfo, Share2, Copy, Check, ExternalLink } from 'lucide-react';
 import api from '../../services/api.js';
 import PhotoUpload from './PhotoUpload.jsx';
 import EditProfileModal from './EditProfileModal.jsx';
@@ -23,6 +23,10 @@ export const MemberProfile = () => {
 
   const [editing, setEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareLink, setShareLink] = useState('');
+  const [shareLoading, setShareLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Fetch Member profile details
   const { data: profile, isLoading, refetch } = useQuery({
@@ -93,6 +97,41 @@ export const MemberProfile = () => {
     if (familyId) params.append('familyId', familyId);
     if (shareableLink) params.append('shareableLink', shareableLink);
     navigate(`/member/${relId}?${params.toString()}`);
+  };
+
+  const handleShareProfile = async () => {
+    if (!familyId) return;
+    setShareLoading(true);
+    try {
+      const res = await api.get(`/families/${familyId}/invite-info`);
+      const familyShareableLink = res.data?.shareableLink;
+      if (!familyShareableLink) {
+        setShareLoading(false);
+        return;
+      }
+      const url = `${window.location.origin}/member/${memberId}?familyId=${familyId}&shareableLink=${encodeURIComponent(familyShareableLink)}`;
+      setShareLink(url);
+      setShareOpen(true);
+      setShareLoading(false);
+
+      if (navigator.share) {
+        navigator.share({
+          title: `${profile.fullName} — Roots Across Generations`,
+          text: `View ${profile.fullName}'s family profile`,
+          url
+        }).catch(() => {});
+      }
+    } catch {
+      setShareLoading(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
   };
 
   return (
@@ -195,6 +234,16 @@ export const MemberProfile = () => {
                 >
                   <Users className="w-3 h-3" />
                   <span>Find Relationship</span>
+                </button>
+              )}
+              {familyId && !shareableLink && (
+                <button
+                  onClick={handleShareProfile}
+                  disabled={shareLoading}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-ancestral-50 hover:bg-ancestral-100 text-ancestral-700 border border-ancestral-200 rounded-full text-xs font-semibold shadow-sm transition duration-200 disabled:opacity-60"
+                >
+                  <Share2 className="w-3 h-3" />
+                  <span>{shareLoading ? 'Loading...' : 'Share Profile'}</span>
                 </button>
               )}
             </div>
@@ -442,6 +491,71 @@ export const MemberProfile = () => {
         </>
         )}
       </div>
+
+      {/* Share Profile Modal */}
+      <AnimatePresence>
+        {shareOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShareOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white rounded-3xl shadow-2xl border border-neutral-200 p-6 w-full max-w-md space-y-5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-display font-bold text-ancestral-900 text-lg">Share Profile</h3>
+                  <p className="text-xs text-neutral-500 mt-0.5">View-only link for {profile.fullName}</p>
+                </div>
+                <button onClick={() => setShareOpen(false)} className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400">
+                  <span className="sr-only">Close</span>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+              </div>
+
+              <div className="bg-ancestral-50 border border-ancestral-200 rounded-2xl p-4">
+                <p className="text-xs text-ancestral-700 font-medium mb-2 flex items-center gap-1.5">
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Anyone with this link can view (no login required)
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    readOnly
+                    value={shareLink}
+                    className="flex-1 text-xs bg-white border border-ancestral-200 rounded-xl px-3 py-2 text-neutral-700 font-mono truncate focus:outline-none"
+                  />
+                  <button
+                    onClick={handleCopyLink}
+                    className="shrink-0 p-2.5 rounded-xl bg-ancestral-500 text-white hover:bg-ancestral-600 transition duration-200"
+                    title="Copy link"
+                  >
+                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-xs text-neutral-400 leading-relaxed">
+                The shared profile shows only basic information: name, lifespan, family relationships, and profile photo. Sensitive details like phone, email, and date of birth are hidden.
+              </div>
+
+              <button
+                onClick={() => setShareOpen(false)}
+                className="w-full py-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-semibold transition duration-200"
+              >
+                Done
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Edit Form Modal */}
       {editing && (

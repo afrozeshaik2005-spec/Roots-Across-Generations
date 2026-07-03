@@ -163,12 +163,9 @@ export const Login = () => {
                 Build, preserve, and explore your family's history through a collaborative digital family tree designed for generations to come.
               </p>
               <div className="flex flex-wrap gap-4 justify-center lg:justify-start pt-2">
-                <a href="#login" className="forest-gradient text-ancestral-50 py-3.5 px-8 rounded-2xl font-medium tracking-wide inline-flex items-center gap-2 transition duration-300 hover:shadow-lg hover:scale-[1.02]">
+                <span className="forest-gradient text-ancestral-50 py-3.5 px-8 rounded-2xl font-medium tracking-wide inline-flex items-center gap-2 cursor-default">
                   Get Started <ArrowRight className="w-4 h-4" />
-                </a>
-                <a href="#features" className="border border-ancestral-300 text-ancestral-700 py-3.5 px-8 rounded-2xl font-medium tracking-wide inline-flex items-center gap-2 transition duration-300 hover:bg-ancestral-100">
-                  Learn More
-                </a>
+                </span>
               </div>
             </motion.section>
 
