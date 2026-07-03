@@ -19,6 +19,7 @@ import AddRelativeModal from './AddRelativeModal.jsx';
 import InviteModal from './InviteModal.jsx';
 import SearchBar from '../search/SearchBar.jsx';
 import NotificationBell from '../notifications/NotificationBell.jsx';
+import RelativeCard from './RelativeCard.jsx';
 import { computeLayout, buildEdges } from './treeLayout.js';
 import ZoomSlider from './ZoomSlider.jsx';
 
@@ -277,6 +278,40 @@ const FamilyTreeInner = () => {
     return result;
   }, [edges, hoveredEdgeId, handleEdgeMouseEnter, handleEdgeMouseLeave]);
 
+  // Find selected member data and relationship for link viewer overlay
+  const selectedMemberData = useMemo(() => {
+    if (!isLinkViewer || !selectedMemberId || !treeData?.members) return null;
+    const member = treeData.members.find(m => m.id === selectedMemberId);
+    if (!member) return null;
+
+    // Find relationship type from relationships array
+    let relationship = null;
+    if (treeData.relationships) {
+      const rel = treeData.relationships.find(
+        r => r.personId === selectedMemberId || r.relatedPersonId === selectedMemberId
+      );
+      if (rel) {
+        // Determine the label based on direction
+        if (rel.personId === selectedMemberId) {
+          relationship = rel.type; // This person IS the type (e.g., FATHER of someone)
+        } else {
+          // Reverse the relationship for the viewer's perspective
+          const reverseMap = {
+            FATHER: 'CHILD', MOTHER: 'CHILD',
+            SON: 'PARENT', DAUGHTER: 'PARENT',
+            HUSBAND: 'SPOUSE', WIFE: 'SPOUSE',
+            BROTHER: 'SIBLING', SISTER: 'SIBLING',
+            STEP_FATHER: 'STEP_CHILD', STEP_MOTHER: 'STEP_CHILD',
+            STEP_SON: 'STEP_PARENT', STEP_DAUGHTER: 'STEP_PARENT',
+          };
+          relationship = reverseMap[rel.type] || rel.type;
+        }
+      }
+    }
+
+    return { member, relationship };
+  }, [isLinkViewer, selectedMemberId, treeData]);
+
   return (
     <div className="h-screen w-screen flex flex-col bg-ancestral-50/50 font-sans relative overflow-hidden">
       {/* Top Bar Navigation */}
@@ -412,6 +447,25 @@ const FamilyTreeInner = () => {
             />
           )}
         </AnimatePresence>
+      )}
+
+      {/* Floating RelativeCard for link viewers */}
+      {isLinkViewer && selectedMemberData && (
+        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-40">
+          <div className="relative">
+            <RelativeCard
+              member={selectedMemberData.member}
+              relationship={selectedMemberData.relationship}
+            />
+            <button
+              onClick={handleCloseSidebar}
+              className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-600 flex items-center justify-center text-xs font-bold shadow transition"
+              title="Close"
+            >
+              &times;
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Comparison floating instruction banner */}
