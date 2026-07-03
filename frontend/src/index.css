@@ -5,6 +5,10 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-ancestral-50 text-ancestral-900 font-sans antialiased selection:bg-gold-200 selection:text-ancestral-900;
   }
@@ -45,4 +49,37 @@
 .forest-gradient-gold {
   background: linear-gradient(135deg, #2c4c38 0%, #0d1811 100%);
   border-bottom: 2px solid #cca05a;
+}
+
+/* Landing page sidebar scroll */
+@media (min-width: 1024px) {
+  aside#login {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(44, 76, 56, 0.2) transparent;
+  }
+  aside#login::-webkit-scrollbar {
+    width: 4px;
+  }
+  aside#login::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  aside#login::-webkit-scrollbar-thumb {
+    background: rgba(44, 76, 56, 0.2);
+    border-radius: 9999px;
+  }
+}
+
+/* Smooth anchor offset for sticky header */
+html {
+  scroll-padding-top: 2rem;
+}
+
+/* Subtle shimmer for gold text */
+@keyframes shimmer {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+.gold-gradient-text {
+  animation: shimmer 4s ease-in-out infinite;
 }
