@@ -20,7 +20,7 @@ const upload = multer({
 const router = Router();
 
 // Retrieve profile (authenticated members or link viewers)
-router.get('/:targetMemberId/relation-to-me', authenticateJWT, getRelationToMe);
+router.get('/:targetMemberId/relation-to-me', authenticateJWTOptional, getRelationToMe);
 router.get('/:memberId/core-family', authenticateJWTOptional, getCoreFamily);
 router.get('/:memberId', authenticateJWTOptional, getMemberProfile);
 

@@ -53,11 +53,25 @@ const FamilyTreeInner = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const shareableLink = searchParams.get('shareableLink');
+  const sourceMemberId = searchParams.get('sourceMemberId');
   const isLinkViewer = !!shareableLink && !user;
 
   const [selectedMemberId, setSelectedMemberId] = useState(null);
   const [compareSourceMember, setCompareSourceMember] = useState(null);
   const queryClient = useQueryClient();
+
+  // Fetch relationship between selected member and shared person (link viewers only)
+  const { data: relationshipData, isLoading: relationshipLoading } = useQuery({
+    queryKey: ['relationToMe', selectedMemberId, sourceMemberId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (sourceMemberId) params.append('sourceMemberId', sourceMemberId);
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      const response = await api.get(`/members/${selectedMemberId}/relation-to-me${qs}`);
+      return response.data;
+    },
+    enabled: isLinkViewer && !!selectedMemberId && !!sourceMemberId
+  });
 
   useEffect(() => {
     const sourceId = searchParams.get('compareSourceId');
@@ -318,8 +332,8 @@ const FamilyTreeInner = () => {
       }
     }
 
-    return { member, relationship };
-  }, [isLinkViewer, selectedMemberId, treeData]);
+    return { member, relationship, relationshipToShared: relationshipData?.relationshipLabel || null, relationshipLoading };
+  }, [isLinkViewer, selectedMemberId, treeData, relationshipData, relationshipLoading]);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-ancestral-50/50 font-sans relative overflow-hidden">
@@ -468,10 +482,12 @@ const FamilyTreeInner = () => {
           />
           <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-40">
             <div className="relative">
-              <RelativeCard
-                member={selectedMemberData.member}
-                relationship={selectedMemberData.relationship}
-              />
+            <RelativeCard
+              member={selectedMemberData.member}
+              relationship={selectedMemberData.relationship}
+              relationshipToShared={selectedMemberData.relationshipToShared}
+              relationshipLoading={selectedMemberData.relationshipLoading}
+            />
               <button
                 onClick={handleCloseSidebar}
                 className="absolute -top-2.5 -right-2.5 w-7 h-7 rounded-full bg-neutral-800 hover:bg-neutral-700 text-white flex items-center justify-center text-sm font-bold shadow-lg transition"

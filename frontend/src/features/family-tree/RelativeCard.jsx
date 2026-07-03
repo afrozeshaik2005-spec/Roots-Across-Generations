@@ -19,7 +19,7 @@ const RELATIONSHIP_LABELS = {
   ADOPTED_CHILD: 'Adopted Child', GUARDIAN: 'Guardian',
 };
 
-const RelativeCard = ({ member, relationship }) => {
+const RelativeCard = ({ member, relationship, relationshipToShared, relationshipLoading }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const shareableLink = searchParams.get('shareableLink');
@@ -86,6 +86,19 @@ const RelativeCard = ({ member, relationship }) => {
           </span>
         )}
       </div>
+
+      {/* Relationship to shared person */}
+      {relationshipLoading ? (
+        <div className="mt-3 px-3 py-2 bg-neutral-50 border border-neutral-200/60 rounded-xl">
+          <p className="text-[10px] text-neutral-400 italic">Calculating relationship...</p>
+        </div>
+      ) : relationshipToShared ? (
+        <div className="mt-3 px-3 py-2 bg-amber-50/80 border border-amber-200/60 rounded-xl">
+          <p className="text-[11px] text-amber-800 font-medium leading-snug">
+            <span className="font-bold">{member.fullName}</span> is <span className="font-bold">{relationshipToShared}</span> of the shared person
+          </p>
+        </div>
+      ) : null}
 
       {/* Details */}
       <div className="mt-3 space-y-1.5 text-[11px] text-neutral-500">

@@ -1326,7 +1326,9 @@ export const getCoreFamily = async (req, res, next) => {
 export const getRelationToMe = async (req, res, next) => {
   try {
     const { targetMemberId } = req.params;
-    const sourceMemberId = req.user.memberId;
+    // Support link viewers: accept sourceMemberId as query param
+    // For authenticated users, fall back to req.user.memberId
+    const sourceMemberId = req.query.sourceMemberId || req.user?.memberId;
 
     if (!sourceMemberId) {
       return res.status(400).json({

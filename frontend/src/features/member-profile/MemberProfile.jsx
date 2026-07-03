@@ -145,7 +145,7 @@ export const MemberProfile = () => {
         {shareableLink ? (
           <div className="text-center">
             <a
-              href={`/family/${familyId}/tree?shareableLink=${shareableLink}`}
+              href={`/family/${familyId}/tree?shareableLink=${shareableLink}&sourceMemberId=${memberId}`}
               className="inline-flex items-center gap-2.5 px-7 py-3.5 bg-gradient-to-r from-[#1a3c2a] to-[#2d5a3f] text-white rounded-2xl text-sm font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] transition duration-300"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
