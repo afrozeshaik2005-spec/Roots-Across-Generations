@@ -474,12 +474,16 @@ export const getMemberProfile = async (req, res, next) => {
     }
 
     // Fetch Spouse, Parents, Children lists
+    const RELATIVE_SELECT = {
+      id: true, fullName: true, profilePhoto: true, dob: true, isLiving: true, generationNumber: true
+    };
+
     const parentsRels = await prisma.relationship.findMany({
       where: {
         relatedPersonId: memberId,
         type: { in: ['FATHER', 'MOTHER', 'STEP_FATHER', 'STEP_MOTHER', 'ADOPTED_CHILD'] }
       },
-      include: { person: { select: { id: true, fullName: true } } }
+      include: { person: { select: RELATIVE_SELECT } }
     });
 
     const childrenRels = await prisma.relationship.findMany({
@@ -487,7 +491,7 @@ export const getMemberProfile = async (req, res, next) => {
         personId: memberId,
         type: { in: ['FATHER', 'MOTHER', 'STEP_FATHER', 'STEP_MOTHER', 'ADOPTED_CHILD'] }
       },
-      include: { relatedPerson: { select: { id: true, fullName: true } } }
+      include: { relatedPerson: { select: RELATIVE_SELECT } }
     });
 
     const spouseRels = await prisma.relationship.findMany({
@@ -499,16 +503,21 @@ export const getMemberProfile = async (req, res, next) => {
         type: { in: ['HUSBAND', 'WIFE'] }
       },
       include: {
-        person: { select: { id: true, fullName: true } },
-        relatedPerson: { select: { id: true, fullName: true } }
+        person: { select: RELATIVE_SELECT },
+        relatedPerson: { select: RELATIVE_SELECT }
       }
     });
 
-    const parents = parentsRels.map(r => ({ id: r.person.id, fullName: r.person.fullName, relationship: r.type, relId: r.id }));
-    const children = childrenRels.map(r => ({ id: r.relatedPerson.id, fullName: r.relatedPerson.fullName, relationship: r.type, relId: r.id }));
+    const mapRelBasic = (p) => ({
+      id: p.id, fullName: p.fullName, profilePhoto: p.profilePhoto,
+      dob: p.dob, isLiving: p.isLiving, generationNumber: p.generationNumber
+    });
+
+    const parents = parentsRels.map(r => ({ ...mapRelBasic(r.person), relationship: r.type, relId: r.id }));
+    const children = childrenRels.map(r => ({ ...mapRelBasic(r.relatedPerson), relationship: r.type, relId: r.id }));
     const spouses = spouseRels.map(r => {
       const spouseNode = r.personId === memberId ? r.relatedPerson : r.person;
-      return { id: spouseNode.id, fullName: spouseNode.fullName, relationship: r.type, relId: r.id };
+      return { ...mapRelBasic(spouseNode), relationship: r.type, relId: r.id };
     });
 
     // Fetch Siblings: members who share at least one parent

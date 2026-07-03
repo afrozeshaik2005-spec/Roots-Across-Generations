@@ -141,25 +141,36 @@ export const MemberProfile = () => {
       <div className="absolute bottom-[-10%] left-[-10%] w-[45%] h-[45%] rounded-full bg-gold-50/30 blur-3xl"></div>
 
       <div className="max-w-5xl mx-auto space-y-8 relative z-10">
-        {/* Back navigation */}
-        <div>
-          <button
-            onClick={() => {
-              if (familyId) {
-                const params = new URLSearchParams();
-                if (shareableLink) params.append('shareableLink', shareableLink);
-                const qs = params.toString() ? `?${params.toString()}` : '';
-                navigate(`/family/${familyId}/tree${qs}`);
-              } else {
-                navigate('/dashboard');
-              }
-            }}
-            className="flex items-center gap-2 text-xs font-semibold text-neutral-500 hover:text-ancestral-800 transition duration-200"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>{shareableLink ? 'View Family Tree' : 'Back to Family Tree'}</span>
-          </button>
-        </div>
+        {/* Back navigation / View Full Tree CTA */}
+        {shareableLink ? (
+          <div className="text-center">
+            <a
+              href={`/family/${familyId}/tree?shareableLink=${shareableLink}`}
+              className="inline-flex items-center gap-2.5 px-7 py-3.5 bg-gradient-to-r from-[#1a3c2a] to-[#2d5a3f] text-white rounded-2xl text-sm font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] transition duration-300"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3m-6.364-3.636l2.121-2.121m8.486-8.486l2.121-2.121M3 12h3m12 0h3M5.636 5.636l2.121 2.121m8.486 8.486l2.121 2.121M12 8a4 4 0 100 8 4 4 0 000-8z" />
+              </svg>
+              View Full Tree
+            </a>
+          </div>
+        ) : (
+          <div>
+            <button
+              onClick={() => {
+                if (familyId) {
+                  navigate(`/family/${familyId}/tree`);
+                } else {
+                  navigate('/dashboard');
+                }
+              }}
+              className="flex items-center gap-2 text-xs font-semibold text-neutral-500 hover:text-ancestral-800 transition duration-200"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Family Tree</span>
+            </button>
+          </div>
+        )}
 
         {/* Profile Card Header */}
         <div className="bg-white/85 border border-neutral-200/80 rounded-3xl p-6 md:p-8 shadow-sm flex flex-col md:flex-row gap-6 items-center md:items-start relative">
@@ -408,14 +419,25 @@ export const MemberProfile = () => {
                 <div className="space-y-1.5">
                   <span className="text-neutral-400 font-light block">Parents</span>
                   {profile.parents?.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="space-y-1.5">
                       {profile.parents.map(p => (
                         <button
                           key={p.id}
                           onClick={() => handleNavigateToRelative(p.id)}
-                          className="px-2.5 py-1.5 bg-neutral-100 hover:bg-neutral-200 border border-neutral-200/50 rounded-lg text-neutral-700 font-semibold block transition"
+                          className="w-full flex items-center gap-2.5 p-2 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/50 rounded-xl text-left transition group"
                         >
-                          {p.fullName}
+                          {p.profilePhoto ? (
+                            <img src={p.profilePhoto} className="w-7 h-7 rounded-lg object-cover shrink-0" alt="" />
+                          ) : (
+                            <div className="w-7 h-7 rounded-lg bg-ancestral-100 flex items-center justify-center shrink-0 text-xs">&#128100;</div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <span className="text-neutral-700 font-semibold block truncate">{p.fullName}</span>
+                            <span className="text-neutral-400 text-[10px]">
+                              {p.relationship?.replace('_', ' ')}
+                              {p.dob ? ` · ${new Date(p.dob).getFullYear()}` : ''}
+                            </span>
+                          </div>
                         </button>
                       ))}
                     </div>
@@ -428,14 +450,25 @@ export const MemberProfile = () => {
                 <div className="space-y-1.5">
                   <span className="text-neutral-400 font-light block">Spouse / Partner</span>
                   {profile.spouses?.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="space-y-1.5">
                       {profile.spouses.map(s => (
                         <button
                           key={s.id}
                           onClick={() => handleNavigateToRelative(s.id)}
-                          className="px-2.5 py-1.5 bg-gold-50/40 hover:bg-gold-50 border border-gold-200 text-neutral-700 font-semibold block transition"
+                          className="w-full flex items-center gap-2.5 p-2 bg-gold-50/40 hover:bg-gold-50 border border-gold-200/60 rounded-xl text-left transition group"
                         >
-                          {s.fullName}
+                          {s.profilePhoto ? (
+                            <img src={s.profilePhoto} className="w-7 h-7 rounded-lg object-cover shrink-0" alt="" />
+                          ) : (
+                            <div className="w-7 h-7 rounded-lg bg-gold-100 flex items-center justify-center shrink-0 text-xs">&#128100;</div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <span className="text-neutral-700 font-semibold block truncate">{s.fullName}</span>
+                            <span className="text-neutral-400 text-[10px]">
+                              {s.relationship?.replace('_', ' ')}
+                              {s.dob ? ` · ${new Date(s.dob).getFullYear()}` : ''}
+                            </span>
+                          </div>
                         </button>
                       ))}
                     </div>
@@ -448,14 +481,25 @@ export const MemberProfile = () => {
                 <div className="space-y-1.5">
                   <span className="text-neutral-400 font-light block">Siblings</span>
                   {profile.siblings?.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="space-y-1.5">
                       {profile.siblings.map(sib => (
                         <button
                           key={sib.id}
                           onClick={() => handleNavigateToRelative(sib.id)}
-                          className="px-2.5 py-1.5 bg-neutral-100 hover:bg-neutral-200 border border-neutral-200/50 rounded-lg text-neutral-700 font-semibold block transition"
+                          className="w-full flex items-center gap-2.5 p-2 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/50 rounded-xl text-left transition group"
                         >
-                          {sib.fullName}
+                          {sib.profilePhoto ? (
+                            <img src={sib.profilePhoto} className="w-7 h-7 rounded-lg object-cover shrink-0" alt="" />
+                          ) : (
+                            <div className="w-7 h-7 rounded-lg bg-ancestral-100 flex items-center justify-center shrink-0 text-xs">&#128100;</div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <span className="text-neutral-700 font-semibold block truncate">{sib.fullName}</span>
+                            <span className="text-neutral-400 text-[10px]">
+                              {sib.relationship?.replace('_', ' ')}
+                              {sib.dob ? ` · ${new Date(sib.dob).getFullYear()}` : ''}
+                            </span>
+                          </div>
                         </button>
                       ))}
                     </div>
@@ -468,14 +512,25 @@ export const MemberProfile = () => {
                 <div className="space-y-1.5">
                   <span className="text-neutral-400 font-light block">Children</span>
                   {profile.children?.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="space-y-1.5">
                       {profile.children.map(c => (
                         <button
                           key={c.id}
                           onClick={() => handleNavigateToRelative(c.id)}
-                          className="px-2.5 py-1.5 bg-neutral-100 hover:bg-neutral-200 border border-neutral-200/50 rounded-lg text-neutral-700 font-semibold block transition"
+                          className="w-full flex items-center gap-2.5 p-2 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/50 rounded-xl text-left transition group"
                         >
-                          {c.fullName}
+                          {c.profilePhoto ? (
+                            <img src={c.profilePhoto} className="w-7 h-7 rounded-lg object-cover shrink-0" alt="" />
+                          ) : (
+                            <div className="w-7 h-7 rounded-lg bg-ancestral-100 flex items-center justify-center shrink-0 text-xs">&#128100;</div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <span className="text-neutral-700 font-semibold block truncate">{c.fullName}</span>
+                            <span className="text-neutral-400 text-[10px]">
+                              {c.relationship?.replace('_', ' ')}
+                              {c.dob ? ` · ${new Date(c.dob).getFullYear()}` : ''}
+                            </span>
+                          </div>
                         </button>
                       ))}
                     </div>
