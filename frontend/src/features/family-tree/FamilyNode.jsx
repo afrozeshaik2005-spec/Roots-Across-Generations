@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import api from '../../services/api.js';
 
 export const FamilyNode = ({ data, selected }) => {
-  const { fullName, profilePhoto, dob, deathDate, isLiving } = data;
+  const { fullName, profilePhoto, dob, deathDate, isLiving, isLinkViewer } = data;
   const { familyId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -115,20 +115,22 @@ export const FamilyNode = ({ data, selected }) => {
           </div>
         </div>
 
-        {/* View Profile button on hover */}
-        <div
-          className={`overflow-hidden transition-all duration-200 ease-in-out ${
-            hovered ? 'max-h-10 opacity-100 mt-2' : 'max-h-0 opacity-0 mt-0'
-          }`}
-        >
-          <button
-            onClick={handleViewProfile}
-            className="w-full px-3 py-1.5 bg-ancestral-700 hover:bg-ancestral-800 text-white text-[10px] font-semibold rounded-lg transition duration-150 flex items-center justify-center gap-1"
+        {/* View Profile button on hover — hidden for link viewers */}
+        {!isLinkViewer && (
+          <div
+            className={`overflow-hidden transition-all duration-200 ease-in-out ${
+              hovered ? 'max-h-10 opacity-100 mt-2' : 'max-h-0 opacity-0 mt-0'
+            }`}
           >
-            <span>View Profile</span>
-            <span>→</span>
-          </button>
-        </div>
+            <button
+              onClick={handleViewProfile}
+              className="w-full px-3 py-1.5 bg-ancestral-700 hover:bg-ancestral-800 text-white text-[10px] font-semibold rounded-lg transition duration-150 flex items-center justify-center gap-1"
+            >
+              <span>View Profile</span>
+              <span>→</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

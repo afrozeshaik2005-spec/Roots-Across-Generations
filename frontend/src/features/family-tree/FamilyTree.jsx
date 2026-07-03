@@ -204,7 +204,8 @@ const FamilyTreeInner = () => {
         isLiving:         m.isLiving,
         email:            m.email,
         role:             m.role,
-        generationNumber: m.generationNumber || 1
+        generationNumber: m.generationNumber || 1,
+        isLinkViewer:     isLinkViewer
       }
     }));
 
