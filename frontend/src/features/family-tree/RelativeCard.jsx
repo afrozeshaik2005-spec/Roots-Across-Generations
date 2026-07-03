@@ -1,5 +1,4 @@
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ExternalLink, TreePine } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 
 const ROLE_BADGE_COLORS = {
   FOUNDER: 'bg-amber-100 text-amber-800 border-amber-200',
@@ -20,23 +19,11 @@ const RELATIONSHIP_LABELS = {
 };
 
 const RelativeCard = ({ member, relationship, relationshipToShared, relationshipLoading }) => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const shareableLink = searchParams.get('shareableLink');
-  const familyId = searchParams.get('familyId');
-
   const birthYear = member.dob ? new Date(member.dob).getFullYear() : null;
   const deathYear = member.deathDate ? new Date(member.deathDate).getFullYear() : null;
   const lifespan = member.isLiving
     ? birthYear ? `${birthYear} – Present` : 'Living'
     : birthYear ? `${birthYear} – ${deathYear || '🕊'}` : 'Deceased';
-
-  const handleViewProfile = () => {
-    const params = new URLSearchParams();
-    if (familyId) params.append('familyId', familyId);
-    if (shareableLink) params.append('shareableLink', shareableLink);
-    navigate(`/member/${member.id}?${params.toString()}`);
-  };
 
   const relationshipLabel = relationship
     ? (RELATIONSHIP_LABELS[relationship] || relationship.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()))
@@ -122,14 +109,6 @@ const RelativeCard = ({ member, relationship, relationshipToShared, relationship
         </div>
       </div>
 
-      {/* View Profile Button */}
-      <button
-        onClick={handleViewProfile}
-        className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1a3c2a] to-[#2d5a3f] hover:from-[#15302a] hover:to-[#245035] text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition duration-200"
-      >
-        <TreePine className="w-3.5 h-3.5" />
-        View Full Profile
-      </button>
     </div>
   );
 };
