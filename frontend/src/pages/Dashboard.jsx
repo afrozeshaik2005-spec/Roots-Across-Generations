@@ -20,7 +20,20 @@ export const Dashboard = () => {
           <span className="font-display font-bold tracking-wider text-gold-200">ROOTS</span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm font-light text-ancestral-100">{user?.email}</span>
+          <button
+            onClick={() => navigate('/profile')}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-medium transition duration-200"
+          >
+            <UserIcon className="w-3.5 h-3.5" />
+            <span>Profile</span>
+          </button>
+          <button
+            onClick={() => navigate('/profile')}
+            className="text-sm font-light text-ancestral-100 hover:text-white transition duration-200 cursor-pointer hidden sm:block"
+            title="View Profile"
+          >
+            {user?.email}
+          </button>
           <button
             onClick={() => navigate('/settings')}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-medium transition duration-200"
