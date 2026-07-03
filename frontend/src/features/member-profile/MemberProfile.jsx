@@ -146,7 +146,10 @@ export const MemberProfile = () => {
           <button
             onClick={() => {
               if (familyId) {
-                navigate(`/family/${familyId}/tree`);
+                const params = new URLSearchParams();
+                if (shareableLink) params.append('shareableLink', shareableLink);
+                const qs = params.toString() ? `?${params.toString()}` : '';
+                navigate(`/family/${familyId}/tree${qs}`);
               } else {
                 navigate('/dashboard');
               }
@@ -154,7 +157,7 @@ export const MemberProfile = () => {
             className="flex items-center gap-2 text-xs font-semibold text-neutral-500 hover:text-ancestral-800 transition duration-200"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to Family Tree</span>
+            <span>{shareableLink ? 'View Family Tree' : 'Back to Family Tree'}</span>
           </button>
         </div>
 
@@ -228,7 +231,11 @@ export const MemberProfile = () => {
               {familyId && (
                 <button
                   onClick={() => {
-                    navigate(`/family/${familyId}/tree?compareSourceId=${profile.id}&compareSourceName=${encodeURIComponent(profile.fullName)}`);
+                    const params = new URLSearchParams();
+                    params.append('compareSourceId', profile.id);
+                    params.append('compareSourceName', profile.fullName);
+                    if (shareableLink) params.append('shareableLink', shareableLink);
+                    navigate(`/family/${familyId}/tree?${params.toString()}`);
                   }}
                   className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-neutral-900 hover:bg-neutral-850 text-white rounded-full text-xs font-semibold shadow-sm transition duration-200"
                 >

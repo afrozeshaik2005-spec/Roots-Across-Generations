@@ -85,13 +85,13 @@ function App() {
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/join/:familyId" element={<JoinFamily />} />
               <Route path="/member/:memberId" element={<MemberProfile />} />
+              <Route path="/family/:familyId/tree" element={<FamilyTree />} />
 
               {/* Protected Routes */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/onboarding" element={<Onboarding />} />
                 <Route path="/family/create" element={<CreateFamily />} />
                 <Route path="/family/import" element={<ImportFamily />} />
-                <Route path="/family/:familyId/tree" element={<FamilyTree />} />
                 <Route path="/family/:familyId/join-requests" element={<JoinRequestsPage />} />
                 <Route path="/family/:familyId/contact-requests" element={<ContactRequestsPage />} />
                 <Route path="/family/:familyId/memories" element={<MemoriesPage />} />

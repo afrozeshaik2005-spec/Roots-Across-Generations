@@ -51,6 +51,9 @@ const FamilyTreeInner = () => {
   const socket = useSocket();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const shareableLink = searchParams.get('shareableLink');
+  const isLinkViewer = !!shareableLink && !user;
+
   const [selectedMemberId, setSelectedMemberId] = useState(null);
   const [compareSourceMember, setCompareSourceMember] = useState(null);
   const queryClient = useQueryClient();
@@ -74,18 +77,21 @@ const FamilyTreeInner = () => {
   const edgeTypes = useMemo(() => ({ familyEdge: FamilyEdge }), []);
 
   // Fetch raw tree data (members + relationships) from backend
-  const { data: treeData, isLoading, refetch } = useQuery({
-    queryKey: ['familyTree', familyId],
+  const { data: treeData, isLoading, refetch, error: treeError } = useQuery({
+    queryKey: ['familyTree', familyId, shareableLink],
     queryFn: async () => {
-      const response = await api.get(`/families/${familyId}/tree`);
+      const params = new URLSearchParams();
+      if (shareableLink) params.append('shareableLink', shareableLink);
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      const response = await api.get(`/families/${familyId}/tree${qs}`);
       return response.data;
     },
     enabled: !!familyId
   });
 
-  // Listen for real-time relationship updates via socket
+  // Listen for real-time relationship updates via socket (authenticated users only)
   useEffect(() => {
-    if (!socket || !familyId) return;
+    if (!socket || !familyId || isLinkViewer) return;
 
     const handleRelationshipUpdated = (payload) => {
       if (payload.familyId === familyId) {
@@ -97,9 +103,9 @@ const FamilyTreeInner = () => {
     return () => socket.off('relationship.updated', handleRelationshipUpdated);
   }, [socket, familyId, refetch]);
 
-  // Listen for contact request events via socket
+  // Listen for contact request events via socket (authenticated users only)
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || isLinkViewer) return;
 
     const handleContactRequestCreated = () => {
       queryClient.invalidateQueries({ queryKey: ['contactRequests', 'received'] });
@@ -276,32 +282,44 @@ const FamilyTreeInner = () => {
       {/* Top Bar Navigation */}
       <div className="h-14 border-b border-neutral-200/80 bg-white/70 backdrop-blur-md flex justify-between items-center px-6 relative z-30">
         <button
-          onClick={() => navigate('/dashboard')}
+          onClick={() => {
+            if (isLinkViewer) {
+              navigate(-1);
+            } else {
+              navigate('/dashboard');
+            }
+          }}
           className="flex items-center gap-2 text-xs font-semibold text-neutral-500 hover:text-ancestral-800 transition duration-200"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Dashboard</span>
+          <span>{isLinkViewer ? 'Back' : 'Dashboard'}</span>
         </button>
         <div className="text-center">
-          <h2 className="text-sm font-bold text-ancestral-900 tracking-wide">Generational Tree</h2>
+          <h2 className="text-sm font-bold text-ancestral-900 tracking-wide">
+            {isLinkViewer ? 'Family Tree (View Only)' : 'Generational Tree'}
+          </h2>
         </div>
         <div className="flex items-center gap-3">
-          <SearchBar familyId={familyId} />
-          <NotificationBell familyId={familyId} />
-          <button
-            onClick={() => setInviteModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gold-600 hover:bg-gold-550 text-white rounded-xl text-xs font-semibold shadow hover:shadow-md transition duration-200"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>Invite Relatives</span>
-          </button>
-          <button
-            onClick={() => navigate(`/family/${familyId}/contact-requests`)}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-neutral-200 hover:bg-neutral-50 text-neutral-600 rounded-xl text-xs font-semibold shadow-sm transition duration-200"
-          >
-            <span>Contact Requests</span>
-          </button>
-          {isHistorian && (
+          {!isLinkViewer && <SearchBar familyId={familyId} />}
+          {!isLinkViewer && <NotificationBell familyId={familyId} />}
+          {!isLinkViewer && (
+            <button
+              onClick={() => setInviteModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gold-600 hover:bg-gold-550 text-white rounded-xl text-xs font-semibold shadow hover:shadow-md transition duration-200"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Invite Relatives</span>
+            </button>
+          )}
+          {!isLinkViewer && (
+            <button
+              onClick={() => navigate(`/family/${familyId}/contact-requests`)}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-neutral-200 hover:bg-neutral-50 text-neutral-600 rounded-xl text-xs font-semibold shadow-sm transition duration-200"
+            >
+              <span>Contact Requests</span>
+            </button>
+          )}
+          {!isLinkViewer && isHistorian && (
             <button
               onClick={() => navigate(`/family/${familyId}/admin`)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-semibold shadow transition duration-200"
@@ -309,24 +327,30 @@ const FamilyTreeInner = () => {
               <span>Historian Admin</span>
             </button>
           )}
-          <button
-            onClick={() => navigate(`/family/${familyId}/relationships`)}
-            className="flex items-center gap-1.5 px-3 py-1.5 forest-gradient text-white rounded-xl text-xs font-semibold shadow hover:shadow-md transition duration-200"
-          >
-            <span>Relationship Explorer</span>
-          </button>
-          <button
-            onClick={() => navigate(`/family/${familyId}/messages`)}
-            className="flex items-center gap-1.5 px-3 py-1.5 forest-gradient text-white rounded-xl text-xs font-semibold shadow hover:shadow-md transition duration-200"
-          >
-            <span>Family Chat</span>
-          </button>
-          <button
-            onClick={() => navigate(`/family/${familyId}/memories`)}
-            className="flex items-center gap-1.5 px-3 py-1.5 forest-gradient text-white rounded-xl text-xs font-semibold shadow hover:shadow-md transition duration-200"
-          >
-            <span>Memories Vault</span>
-          </button>
+          {!isLinkViewer && (
+            <button
+              onClick={() => navigate(`/family/${familyId}/relationships`)}
+              className="flex items-center gap-1.5 px-3 py-1.5 forest-gradient text-white rounded-xl text-xs font-semibold shadow hover:shadow-md transition duration-200"
+            >
+              <span>Relationship Explorer</span>
+            </button>
+          )}
+          {!isLinkViewer && (
+            <button
+              onClick={() => navigate(`/family/${familyId}/messages`)}
+              className="flex items-center gap-1.5 px-3 py-1.5 forest-gradient text-white rounded-xl text-xs font-semibold shadow hover:shadow-md transition duration-200"
+            >
+              <span>Family Chat</span>
+            </button>
+          )}
+          {!isLinkViewer && (
+            <button
+              onClick={() => navigate(`/family/${familyId}/memories`)}
+              className="flex items-center gap-1.5 px-3 py-1.5 forest-gradient text-white rounded-xl text-xs font-semibold shadow hover:shadow-md transition duration-200"
+            >
+              <span>Memories Vault</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -334,6 +358,21 @@ const FamilyTreeInner = () => {
         <div className="flex-1 flex flex-col items-center justify-center">
           <Loader2 className="w-10 h-10 animate-spin text-ancestral-500" />
           <p className="mt-4 text-xs text-neutral-500">Constructing interactive branches...</p>
+        </div>
+      ) : treeError ? (
+        <div className="flex-1 flex flex-col items-center justify-center space-y-4">
+          <p className="text-sm text-neutral-600">Unable to load the family tree.</p>
+          <p className="text-xs text-neutral-400">
+            {treeError?.response?.status === 401
+              ? 'This tree requires authentication. Please log in or use a valid share link.'
+              : 'An error occurred while loading the tree.'}
+          </p>
+          <button
+            onClick={() => navigate(-1)}
+            className="px-4 py-2 forest-gradient text-white text-xs font-semibold rounded-xl"
+          >
+            Go Back
+          </button>
         </div>
       ) : (
         <div className="flex-1 relative z-10">
@@ -357,21 +396,23 @@ const FamilyTreeInner = () => {
         </div>
       )}
 
-      {/* Slide-out profile info */}
-      <AnimatePresence>
-        {selectedMemberId && (
-          <ProfileSidebar
-            memberId={selectedMemberId}
-            familyId={familyId}
-            currentUserMemberId={user?.memberId}
-            isHistorian={isHistorian}
-            onClose={handleCloseSidebar}
-            onAddRelative={handleAddRelative}
-            onStartCompare={handleStartCompare}
-            onRelationshipDeleted={handleAddSuccess}
-          />
-        )}
-      </AnimatePresence>
+      {/* Slide-out profile info (authenticated users only) */}
+      {!isLinkViewer && (
+        <AnimatePresence>
+          {selectedMemberId && (
+            <ProfileSidebar
+              memberId={selectedMemberId}
+              familyId={familyId}
+              currentUserMemberId={user?.memberId}
+              isHistorian={isHistorian}
+              onClose={handleCloseSidebar}
+              onAddRelative={handleAddRelative}
+              onStartCompare={handleStartCompare}
+              onRelationshipDeleted={handleAddSuccess}
+            />
+          )}
+        </AnimatePresence>
+      )}
 
       {/* Comparison floating instruction banner */}
       {compareSourceMember && (

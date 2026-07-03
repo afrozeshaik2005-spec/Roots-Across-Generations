@@ -71,6 +71,7 @@ export const findRelationship = async (req, res, next) => {
 export const getFamilyTree = async (req, res, next) => {
   try {
     const { familyId } = req.params;
+    const { shareableLink } = req.query;
 
     // Verify family exists
     const family = await prisma.family.findUnique({
@@ -80,6 +81,24 @@ export const getFamilyTree = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         error: { message: 'Family not found', status: 404 }
+      });
+    }
+
+    // Determine viewer role
+    let isLinkViewer = false;
+    if (!req.user && shareableLink) {
+      if (family.shareableLink === shareableLink) {
+        isLinkViewer = true;
+      } else {
+        return res.status(403).json({
+          success: false,
+          error: { message: 'Invalid shareable link', status: 403 }
+        });
+      }
+    } else if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: { message: 'Authentication required', status: 401 }
       });
     }
 
@@ -95,19 +114,30 @@ export const getFamilyTree = async (req, res, next) => {
       }
     });
 
-    const members = memberships.map(m => ({
-      id:               m.member.id,
-      fullName:         m.member.fullName,
-      nickname:         m.member.nickname,
-      profilePhoto:     m.member.profilePhoto,
-      dob:              m.member.dob,
-      deathDate:        m.member.deathDate,
-      isLiving:         m.member.isLiving,
-      email:            m.member.email || m.member.user?.email || null,
-      generationNumber: m.member.generationNumber || 1,
-      role:             m.role,
-      isPrimary:        m.isPrimary
-    }));
+    const members = memberships.map(m => {
+      const member = {
+        id:               m.member.id,
+        fullName:         m.member.fullName,
+        nickname:         m.member.nickname,
+        profilePhoto:     m.member.profilePhoto,
+        dob:              m.member.dob,
+        deathDate:        m.member.deathDate,
+        isLiving:         m.member.isLiving,
+        generationNumber: m.member.generationNumber || 1,
+        role:             m.role,
+        isPrimary:        m.isPrimary
+      };
+
+      // Strip sensitive data for link viewers
+      if (isLinkViewer) {
+        member.email = null;
+        member.dob = m.member.dob ? new Date(m.member.dob).getFullYear() + '-01-01' : null;
+      } else {
+        member.email = m.member.email || m.member.user?.email || null;
+      }
+
+      return member;
+    });
 
     // Fetch relationships in this family
     const relationships = await prisma.relationship.findMany({
@@ -124,7 +154,8 @@ export const getFamilyTree = async (req, res, next) => {
     res.json({
       success:       true,
       members,
-      relationships
+      relationships,
+      isLinkViewer
     });
   } catch (err) {
     next(err);
