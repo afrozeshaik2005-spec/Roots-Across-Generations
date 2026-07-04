@@ -151,6 +151,7 @@ const FamilyTreeInner = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
+  const [traversingEdgeId, setTraversingEdgeId] = useState(null);
   const [zoom, setZoom] = useState(1);
 
   // Sync zoom state with React Flow viewport (READ-ONLY — never writes to viewport)
@@ -288,6 +289,16 @@ const FamilyTreeInner = () => {
     });
   }, []);
 
+  // React Flow onEdgeClick — receives (event, edge) from the canvas
+  const onEdgeClick = useCallback((event, edge) => {
+    if (edge?.source && edge?.target) {
+      handleEdgeClick(edge.source, edge.target);
+      // Trigger gold flash on the clicked edge
+      setTraversingEdgeId(edge.id);
+      setTimeout(() => setTraversingEdgeId(null), 1500);
+    }
+  }, [handleEdgeClick]);
+
   // Annotate edges with hover state and reorder so hovered edge renders last (on top)
   const annotatedEdges = useMemo(() => {
     if (!edges.length) return edges;
@@ -298,9 +309,9 @@ const FamilyTreeInner = () => {
         ...e.data,
         isHovered: hoveredEdgeId === e.id,
         isDimmed: hoveredEdgeId !== null && hoveredEdgeId !== e.id,
+        isTraversing: traversingEdgeId === e.id,
         onEdgeMouseEnter: handleEdgeMouseEnter,
-        onEdgeMouseLeave: handleEdgeMouseLeave,
-        onEdgeClick: handleEdgeClick
+        onEdgeMouseLeave: handleEdgeMouseLeave
       }
     }));
 
@@ -314,7 +325,7 @@ const FamilyTreeInner = () => {
     }
 
     return result;
-  }, [edges, hoveredEdgeId, handleEdgeMouseEnter, handleEdgeMouseLeave, handleEdgeClick]);
+  }, [edges, hoveredEdgeId, traversingEdgeId, handleEdgeMouseEnter, handleEdgeMouseLeave]);
 
   // Find selected member data and relationship for link viewer overlay
   const selectedMemberData = useMemo(() => {
@@ -466,6 +477,7 @@ const FamilyTreeInner = () => {
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             onNodeClick={onNodeClick}
+            onEdgeClick={onEdgeClick}
             minZoom={0.1}
             maxZoom={2.5}
             nodesDraggable={true}

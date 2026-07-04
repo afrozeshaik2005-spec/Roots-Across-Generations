@@ -1,4 +1,4 @@
-import { useCallback, useState, memo } from 'react';
+import { useCallback, memo } from 'react';
 import {
   getStraightPath,
   getSmoothStepPath,
@@ -55,8 +55,6 @@ const getStrokeDasharray = (dash) => {
 
 export const FamilyEdge = ({
   id,
-  source,
-  target,
   sourceX, sourceY,
   targetX, targetY,
   sourcePosition, targetPosition,
@@ -65,11 +63,9 @@ export const FamilyEdge = ({
 }) => {
   const isHovered = data?.isHovered ?? false;
   const isDimmed = data?.isDimmed ?? false;
+  const isTraversing = data?.isTraversing ?? false;
   const onEdgeMouseEnter = data?.onEdgeMouseEnter;
   const onEdgeMouseLeave = data?.onEdgeMouseLeave;
-  const onEdgeClick = data?.onEdgeClick;
-
-  const [isTraversing, setIsTraversing] = useState(false);
 
   const isSpouse = ['HUSBAND', 'WIFE', 'SPOUSE'].includes(data?.type);
   const edgeStyle = TYPE_STYLES[data?.type] || TYPE_STYLES.FATHER;
@@ -98,14 +94,6 @@ export const FamilyEdge = ({
     if (onEdgeMouseLeave) onEdgeMouseLeave();
   }, [onEdgeMouseLeave]);
 
-  const handleClick = useCallback(() => {
-    if (onEdgeClick && source && target) {
-      onEdgeClick(source, target);
-      setIsTraversing(true);
-      setTimeout(() => setIsTraversing(false), 1500);
-    }
-  }, [onEdgeClick, source, target]);
-
   // Compute visual styles based on hover state
   const baseWidth = edgeStyle.strokeWidth;
   const visualWidth = isHovered || isTraversing ? baseWidth + 3 : baseWidth;
@@ -115,7 +103,7 @@ export const FamilyEdge = ({
 
   return (
     <>
-      {/* Invisible fat hit-area for hover + click detection */}
+      {/* Invisible fat hit-area for hover detection */}
       <path
         d={edgePath}
         fill="none"
@@ -123,7 +111,6 @@ export const FamilyEdge = ({
         strokeWidth={24}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        onClick={handleClick}
         style={{ cursor: 'pointer' }}
       />
       {/* Visible styled path */}
