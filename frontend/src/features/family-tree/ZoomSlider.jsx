@@ -1,4 +1,4 @@
-import { RotateCcw } from 'lucide-react';
+import { Crosshair } from 'lucide-react';
 
 const ZOOM_MIN = 0.1;
 const ZOOM_MAX = 2.5;
@@ -12,9 +12,9 @@ const ZoomSlider = ({ zoom, onZoomChange, onResetView }) => {
       <button
         onClick={onResetView}
         className="p-1.5 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-lg shadow-sm hover:bg-neutral-50 transition duration-200 mb-1"
-        title="Reset View"
+        title="Recenter Tree"
       >
-        <RotateCcw className="w-3.5 h-3.5 text-neutral-500" />
+        <Crosshair className="w-3.5 h-3.5 text-neutral-500" />
       </button>
 
       {/* Zoom label */}

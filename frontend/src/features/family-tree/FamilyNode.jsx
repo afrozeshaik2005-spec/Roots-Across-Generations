@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import api from '../../services/api.js';
 
 export const FamilyNode = ({ data, selected }) => {
-  const { fullName, profilePhoto, dob, deathDate, isLiving, isLinkViewer } = data;
+  const { fullName, profilePhoto, dob, deathDate, isLiving, isLinkViewer, isCurrentUser } = data;
   const { familyId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -63,15 +63,24 @@ export const FamilyNode = ({ data, selected }) => {
 
       <div
         className={`px-4 py-3 rounded-2xl border bg-white/95 backdrop-blur-sm min-w-[200px] shadow-sm hover:shadow-lg transform hover:scale-108 transition-all duration-150 cursor-pointer ${
-          isLiving
-            ? 'border-ancestral-400 hover:border-ancestral-600 shadow-ancestral-100/30'
-            : 'border-neutral-300 hover:border-neutral-400 grayscale bg-neutral-50/95'
+          isCurrentUser
+            ? 'border-teal-500 shadow-[0_0_14px_rgba(13,148,136,0.35)] personal-node-glow'
+            : isLiving
+              ? 'border-ancestral-400 hover:border-ancestral-600 shadow-ancestral-100/30'
+              : 'border-neutral-300 hover:border-neutral-400 grayscale bg-neutral-50/95'
         }`}
       >
         {/* Generation Badge */}
         {isHistorianOrFounder && (
           <span className="absolute top-2 right-2 px-1.5 py-0.5 bg-neutral-100 text-neutral-600 rounded text-[9px] font-semibold">
             Gen {data.generationNumber}
+          </span>
+        )}
+
+        {/* Personal Node Badge */}
+        {isCurrentUser && (
+          <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-teal-500 text-white rounded-full text-[9px] font-bold shadow-md z-10">
+            YOU
           </span>
         )}
 

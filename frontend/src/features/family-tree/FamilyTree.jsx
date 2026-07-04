@@ -205,7 +205,8 @@ const FamilyTreeInner = () => {
         email:            m.email,
         role:             m.role,
         generationNumber: m.generationNumber || 1,
-        isLinkViewer:     isLinkViewer
+        isLinkViewer:     isLinkViewer,
+        isCurrentUser:    user?.memberId === m.id
       }
     }));
 
@@ -238,6 +239,13 @@ const FamilyTreeInner = () => {
       );
     } else {
       setSelectedMemberId(targetId);
+      // Zoom and recenter on the clicked node
+      const zoomLevel = event.shiftKey ? 1.5 : 1.2;
+      fitViewRef.current({
+        duration: 500,
+        padding: 0.3,
+        nodes: [{ id: targetId }]
+      });
     }
   }, [compareSourceMember, familyId, navigate]);
 
@@ -266,6 +274,20 @@ const FamilyTreeInner = () => {
     setHoveredEdgeId(null);
   }, []);
 
+  const handleEdgeClick = useCallback((sourceId, targetId) => {
+    // Determine which node to traverse to (the target node)
+    const targetNodeId = targetId;
+    if (!targetNodeId) return;
+
+    setSelectedMemberId(targetNodeId);
+    // Zoom and recenter on the target node
+    fitViewRef.current({
+      duration: 500,
+      padding: 0.3,
+      nodes: [{ id: targetNodeId }]
+    });
+  }, []);
+
   // Annotate edges with hover state and reorder so hovered edge renders last (on top)
   const annotatedEdges = useMemo(() => {
     if (!edges.length) return edges;
@@ -277,7 +299,8 @@ const FamilyTreeInner = () => {
         isHovered: hoveredEdgeId === e.id,
         isDimmed: hoveredEdgeId !== null && hoveredEdgeId !== e.id,
         onEdgeMouseEnter: handleEdgeMouseEnter,
-        onEdgeMouseLeave: handleEdgeMouseLeave
+        onEdgeMouseLeave: handleEdgeMouseLeave,
+        onEdgeClick: handleEdgeClick
       }
     }));
 
@@ -291,7 +314,7 @@ const FamilyTreeInner = () => {
     }
 
     return result;
-  }, [edges, hoveredEdgeId, handleEdgeMouseEnter, handleEdgeMouseLeave]);
+  }, [edges, hoveredEdgeId, handleEdgeMouseEnter, handleEdgeMouseLeave, handleEdgeClick]);
 
   // Find selected member data and relationship for link viewer overlay
   const selectedMemberData = useMemo(() => {

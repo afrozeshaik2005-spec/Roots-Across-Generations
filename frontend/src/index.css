@@ -83,3 +83,17 @@ html {
 .gold-gradient-text {
   animation: shimmer 4s ease-in-out infinite;
 }
+
+/* Personal node glow animation */
+@keyframes personalNodeGlow {
+  0%, 100% {
+    box-shadow: 0 0 14px rgba(13, 148, 136, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(13, 148, 136, 0.55);
+  }
+}
+
+.personal-node-glow {
+  animation: personalNodeGlow 2.5s ease-in-out 1;
+}

@@ -1,4 +1,4 @@
-import { useCallback, memo } from 'react';
+import { useCallback, useState, memo } from 'react';
 import {
   getStraightPath,
   getSmoothStepPath,
@@ -65,6 +65,9 @@ export const FamilyEdge = ({
   const isDimmed = data?.isDimmed ?? false;
   const onEdgeMouseEnter = data?.onEdgeMouseEnter;
   const onEdgeMouseLeave = data?.onEdgeMouseLeave;
+  const onEdgeClick = data?.onEdgeClick;
+
+  const [isTraversing, setIsTraversing] = useState(false);
 
   const isSpouse = ['HUSBAND', 'WIFE', 'SPOUSE'].includes(data?.type);
   const edgeStyle = TYPE_STYLES[data?.type] || TYPE_STYLES.FATHER;
@@ -93,15 +96,24 @@ export const FamilyEdge = ({
     if (onEdgeMouseLeave) onEdgeMouseLeave();
   }, [onEdgeMouseLeave]);
 
+  const handleClick = useCallback(() => {
+    if (onEdgeClick && data?.source && data?.target) {
+      onEdgeClick(data.source, data.target);
+      setIsTraversing(true);
+      setTimeout(() => setIsTraversing(false), 1500);
+    }
+  }, [onEdgeClick, data?.source, data?.target]);
+
   // Compute visual styles based on hover state
   const baseWidth = edgeStyle.strokeWidth;
-  const visualWidth = isHovered ? baseWidth + 3 : baseWidth;
+  const visualWidth = isHovered || isTraversing ? baseWidth + 3 : baseWidth;
   const visualOpacity = isDimmed ? 0.2 : 1;
-  const glowFilter = isHovered ? 'drop-shadow(0 0 6px rgba(0,0,0,0.3))' : 'none';
+  const glowFilter = isHovered || isTraversing ? 'drop-shadow(0 0 6px rgba(201,168,76,0.5))' : 'none';
+  const strokeColor = isTraversing ? '#c9a84c' : edgeStyle.color;
 
   return (
     <>
-      {/* Invisible fat hit-area for hover detection */}
+      {/* Invisible fat hit-area for hover + click detection */}
       <path
         d={edgePath}
         fill="none"
@@ -109,20 +121,21 @@ export const FamilyEdge = ({
         strokeWidth={24}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        style={{ cursor: 'default' }}
+        onClick={handleClick}
+        style={{ cursor: 'pointer' }}
       />
       {/* Visible styled path */}
       <path
         d={edgePath}
         fill="none"
         style={{
-          stroke: edgeStyle.color,
+          stroke: strokeColor,
           strokeWidth: visualWidth,
           strokeDasharray: getStrokeDasharray(edgeStyle.dash),
           pointerEvents: 'none',
           opacity: visualOpacity,
           filter: glowFilter,
-          transition: 'opacity 150ms ease, stroke-width 150ms ease, filter 150ms ease'
+          transition: 'opacity 150ms ease, stroke-width 150ms ease, filter 150ms ease, stroke 300ms ease'
         }}
       />
 
