@@ -62,12 +62,12 @@ export const FamilyNode = ({ data, selected }) => {
       )}
 
       <div
-        className={`px-4 py-3 rounded-2xl border bg-white/95 backdrop-blur-sm min-w-[200px] shadow-sm hover:shadow-lg transform hover:scale-108 transition-all duration-150 cursor-pointer ${
+        className={`px-4 py-3 rounded-2xl border-2 bg-white min-w-[200px] shadow-md hover:shadow-xl transform hover:scale-105 transition-all duration-150 cursor-pointer ${
           isCurrentUser
             ? 'border-teal-500 shadow-[0_0_14px_rgba(13,148,136,0.35)] personal-node-glow'
             : isLiving
-              ? 'border-ancestral-400 hover:border-ancestral-600 shadow-ancestral-100/30'
-              : 'border-neutral-300 hover:border-neutral-400 grayscale bg-neutral-50/95'
+              ? 'border-ancestral-500 hover:border-ancestral-700'
+              : 'border-neutral-400 hover:border-neutral-500 grayscale bg-neutral-50'
         }`}
       >
         {/* Generation Badge */}
@@ -86,11 +86,11 @@ export const FamilyNode = ({ data, selected }) => {
 
         {/* Handles for tree mapping */}
         {/* Parent-child: parent exports from Bottom, child receives on Top */}
-        <Handle type="source" position={Position.Bottom} id="child-out"  className="!bg-ancestral-500 !w-2.5 !h-2.5" />
-        <Handle type="target" position={Position.Top}    id="parent-in"  className="!bg-ancestral-500 !w-2.5 !h-2.5" />
+        <Handle type="source" position={Position.Bottom} id="child-out"  className="!bg-ancestral-700 !w-3 !h-3 !border-2 !border-white" />
+        <Handle type="target" position={Position.Top}    id="parent-in"  className="!bg-ancestral-700 !w-3 !h-3 !border-2 !border-white" />
         {/* Spouse: left and right horizontal connectors */}
-        <Handle type="source" position={Position.Right}  id="spouse-right" className="!bg-gold-500 !w-2 !h-2" />
-        <Handle type="target" position={Position.Left}   id="spouse-left"  className="!bg-gold-500 !w-2 !h-2" />
+        <Handle type="source" position={Position.Right}  id="spouse-right" className="!bg-gold-600 !w-2.5 !h-2.5 !border-2 !border-white" />
+        <Handle type="target" position={Position.Left}   id="spouse-left"  className="!bg-gold-600 !w-2.5 !h-2.5 !border-2 !border-white" />
 
 
         <div className="flex items-center gap-3">

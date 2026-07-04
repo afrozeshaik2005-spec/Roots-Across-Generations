@@ -360,7 +360,7 @@ const FamilyTreeInner = () => {
   }, [isLinkViewer, selectedMemberId, treeData, relationshipData, relationshipLoading]);
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-ancestral-50/50 font-sans relative overflow-hidden">
+    <div className="h-screen w-screen flex flex-col tree-canvas font-sans relative overflow-hidden">
       {/* Top Bar Navigation */}
       <div className="h-14 border-b border-neutral-200/80 bg-white/70 backdrop-blur-md flex justify-between items-center px-6 relative z-30">
         <button
@@ -472,7 +472,7 @@ const FamilyTreeInner = () => {
             nodesConnectable={false}
             onlyRenderVisibleElements={true}
           >
-            <Background color="#cca05a" gap={24} size={1} className="opacity-15" />
+            <Background color="#9a8e7e" gap={24} size={1} className="opacity-20" />
           </ReactFlow>
           <ZoomSlider zoom={zoom} onZoomChange={handleZoomChange} onResetView={handleResetView} />
         </div>

@@ -55,6 +55,8 @@ const getStrokeDasharray = (dash) => {
 
 export const FamilyEdge = ({
   id,
+  source,
+  target,
   sourceX, sourceY,
   targetX, targetY,
   sourcePosition, targetPosition,
@@ -97,12 +99,12 @@ export const FamilyEdge = ({
   }, [onEdgeMouseLeave]);
 
   const handleClick = useCallback(() => {
-    if (onEdgeClick && data?.source && data?.target) {
-      onEdgeClick(data.source, data.target);
+    if (onEdgeClick && source && target) {
+      onEdgeClick(source, target);
       setIsTraversing(true);
       setTimeout(() => setIsTraversing(false), 1500);
     }
-  }, [onEdgeClick, data?.source, data?.target]);
+  }, [onEdgeClick, source, target]);
 
   // Compute visual styles based on hover state
   const baseWidth = edgeStyle.strokeWidth;

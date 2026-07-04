@@ -97,3 +97,11 @@ html {
 .personal-node-glow {
   animation: personalNodeGlow 2.5s ease-in-out 1;
 }
+
+/* Tree canvas — warm parchment background for contrast against white nodes */
+.tree-canvas {
+  background-color: #e8e2d8;
+  background-image:
+    radial-gradient(circle, rgba(180, 168, 148, 0.15) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
